@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 战斗 HUD · WebUI</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+:root {
+  --blood: #B83A1C;
+  --gold-2: #C9A24B;
+  --jade: #9DD0B8;
+}
+
+html,
+body {
+  background: transparent !important;
+}
+
+.stage {
+  background: transparent;
+}
+
+.vignette {
+  background:
+    radial-gradient(ellipse 78% 70% at 50% 50%, transparent 58%, rgba(0,0,0,0.18) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.08), transparent 28%, transparent 72%, rgba(0,0,0,0.14));
+}
+
+.footer-bar {
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.24));
+}
+
+.scene-tag {
+  position: absolute; top: 28px; left: 5vw;
+  display: flex; align-items: center; gap: 14px;
+}
+.ch-seal {
+  position: relative; width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 900; color: var(--paper);
+  background: var(--zhusha);
+  box-shadow: 0 0 0 2px rgba(184,58,28,0.4), 2px 4px 8px rgba(0,0,0,0.5);
+  transform: rotate(-4deg);
+}
+.ch-seal::before { content: ""; position:absolute; inset:3px; border:1.5px solid rgba(237,223,194,0.25); }
+.ch-meta { line-height: 1.3; }
+.ch-num  { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.3em; color: var(--paper-mute); }
+.ch-name { font-size: 16px; letter-spacing: 0.2em; color: var(--paper); margin-top: 3px; }
+
+.quest {
+  position: absolute; top: 28px; right: 5vw;
+  max-width: 320px; text-align: right;
+}
+.quest-tag {
+  display: inline-block;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.3em;
+  color: var(--zhusha-bright);
+  padding: 2px 9px; border: 1px solid var(--zhusha);
+  margin-bottom: 8px;
+}
+.quest-title { font-size: 17px; letter-spacing: 0.18em; color: var(--paper); margin-bottom: 4px; }
+.quest-obj { font-size: 12px; color: var(--paper-dim); letter-spacing: 0.1em; line-height: 1.5; }
+.quest-count {
+  display: inline-flex; gap: 8px; margin-top: 6px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--paper);
+  letter-spacing: 0.1em;
+}
+.quest-count .done  { color: var(--zhusha-bright); font-weight: 700; }
+.quest-count .total { color: var(--paper-mute); }
+
+.alert {
+  position: absolute; top: 26%; left: 50%; transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.alert.show { opacity: 1; animation: alert-pulse 0.6s ease-out; }
+.alert-kanji {
+  font-family: var(--font-kai); font-size: 64px; font-weight: 900;
+  letter-spacing: 0.25em; color: var(--paper);
+  text-shadow: 0 0 24px rgba(237,223,194,0.65), 0 0 60px var(--zhusha-glow);
+}
+
+.damage-float-root {
+  position: absolute;
+  left: 50%;
+  top: 49%;
+  transform: translate(-50%, -50%);
+  width: 260px;
+  height: 180px;
+  pointer-events: none;
+  z-index: 20;
+}
+.damage-float {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  font-family: var(--font-kai);
+  font-size: clamp(26px, 3.2vw, 46px);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: #ffe6cc;
+  text-shadow: 0 2px 0 rgba(70, 8, 3, 0.82), 0 0 18px rgba(184, 58, 28, 0.85);
+  animation: damage-float-rise 0.9s cubic-bezier(0.16, 0.8, 0.24, 1) forwards;
+}
+.damage-float.exhausted {
+  color: #f4d6ff;
+  text-shadow: 0 2px 0 rgba(34, 11, 42, 0.88), 0 0 18px rgba(161, 95, 255, 0.75);
+}
+@keyframes damage-float-rise {
+  0%   { opacity: 0; transform: translate(-50%, 12px) scale(0.82); }
+  14%  { opacity: 1; transform: translate(-50%, 0) scale(1.12); }
+  100% { opacity: 0; transform: translate(-50%, -86px) scale(0.96); }
+}
+
+@keyframes alert-pulse {
+  0%   { transform: translateX(-50%) scale(1.4); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translateX(-50%) scale(1.0); opacity: 0; }
+}
+
+.enemy {
+  position: absolute; top: 24px; left: 50%;
+  width: min(27vw, 360px); min-width: 260px;
+  transform: translateX(-50%);
+  display: none;
+  padding: 4px 10px 6px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.14), rgba(0,0,0,0.06));
+  border-top: 1px solid rgba(237,223,194,0.16);
+  border-bottom: 1px solid rgba(237,223,194,0.10);
+}
+.enemy.show { display: block; }
+.enemy::before {
+  content: "";
+  position: absolute; left: 24px; right: 24px; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(184,58,28,0.60), transparent);
+}
+.enemy-label {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-bottom: 7px;
+}
+.enemy-name {
+  font-family: var(--font-kai); font-size: 17px; font-weight: 700;
+  letter-spacing: 0.18em; color: var(--paper);
+  text-shadow: 0 0 10px rgba(237,223,194,0.14);
+}
+.enemy-rank {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em;
+  color: var(--zhusha-bright);
+  padding: 2px 7px;
+  border: 1px solid rgba(184,58,28,0.34);
+  background: rgba(184,58,28,0.05);
+}
+.enemy-bars { display: flex; flex-direction: column; gap: 5px; }
+.enemy-bar-row { display: flex; align-items: center; gap: 8px; }
+.enemy-bar-label {
+  width: 16px;
+  font-family: var(--font-kai); font-size: 14px; font-weight: 700;
+  color: var(--paper); text-align: center;
+}
+.enemy-bar-row.qi .enemy-bar-label { color: var(--gold-2); }
+.enemy-bar-row.shi .enemy-bar-label { color: var(--jade); }
+.enemy-bar-value {
+  width: 34px;
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.08em; color: var(--paper-mute);
+  text-align: right;
+}
+.bar-thin {
+  flex: 1;
+  height: 4px; background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(237,223,194,0.18); position: relative; overflow: hidden;
+}
+.bar-thin .fill {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  background: linear-gradient(90deg, var(--gold-2) 0%, #E8C666 100%);
+  z-index: 1;
+}
+.bar-thin.ming { border-color: rgba(184,58,28,0.3); }
+.bar-thin.ming .fill {
+  background: linear-gradient(90deg, var(--blood) 0%, #C84545 100%);
+}
+.bar-posture {
+  flex: 1;
+  height: 4px; background: rgba(0,0,0,0.22); position: relative;
+  border: 1px solid rgba(157,208,184,0.18); overflow: hidden;
+}
+.bar-posture .fill {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  background: linear-gradient(90deg, #5C7A6C 0%, #9DD0B8 100%);
+  z-index: 1;
+}
+/* 残影条（敌人） */
+.bar-thin .lag, .bar-posture .lag {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  background: rgba(237, 223, 194, 0.55);
+  mix-blend-mode: screen;
+  transition: width 0.35s cubic-bezier(0.16, 0.8, 0.24, 1) 0.15s;
+}
+
+.player {
+  position: absolute; bottom: 96px; left: 5vw;
+  width: 420px;
+}
+.player-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.player-name { font-family: var(--font-kai); font-size: 24px; font-weight: 700; letter-spacing: 0.22em; color: var(--paper); }
+.player-class {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.3em;
+  color: var(--zhusha-bright); padding: 3px 10px; border: 1px solid var(--zhusha);
+}
+/* 用 grid 替代 flex —— 三列固定/弹性/固定，bar 中列总能拿到剩余宽度，
+   不会因为子元素 absolute 触发 flex collapse 0px，也不会 overflow 撑到下一行。 */
+.bar-row { display: grid; grid-template-columns: 24px 1fr auto; align-items: center;
+           gap: 12px; margin-bottom: 8px; }
+.bar-label {
+  font-family: var(--font-kai); font-size: 18px; font-weight: 700;
+  color: var(--paper); text-align: center;
+}
+.bar-row.qi  .bar-label { color: var(--gold-2); }
+.bar-row.shi .bar-label { color: var(--paper-2); }
+.bar { width: 100%; min-width: 0; height: 7px; background: rgba(0,0,0,0.44); border: 1px solid rgba(237,223,194,0.22); position: relative; overflow: hidden; }
+/* 双层血条：主条立即变化，残影条（lag）延迟 0.15s 再 0.35s 缓动追上来。
+   见 Obisdian/02_游戏设计/05_UIUX/2026-04-30-延迟血条表现层设计.md */
+.bar-fill, .bar-lag { position: absolute; top: 0; bottom: 0; left: 0; right: auto; }
+/* 残影条：默认 zhusha 红 0.85 透明。攻击瞬间 fill 立即收缩到新值，lag 停 0.15s
+   再 0.35s 缓动追上来。中间 0.5 秒 lag 露出的那一截就是"刚刚损失的量"。 */
+.bar-lag  { transition: width 0.35s cubic-bezier(0.16, 0.8, 0.24, 1) 0.15s;
+            background: rgba(220, 70, 50, 0.85);
+            z-index: 1; }
+/* width 不要 transition：bar 必须 = 当前数值。有 transition 会让 bar 永远在追
+   60Hz push 的移动目标，肉眼看到的是 transition 中间帧，不是真值。
+   消耗反馈走 .consume-flash filter 动画（跟 width 无关），不会受影响。 */
+.bar-fill { z-index: 2; }
+/* 命：fill 是深血红，所以 lag 必须用 contrast 暖橙才能看到残影段。
+   两条同色（红压红）会让残影完全融在 fill 里，看不到 — 之前的 bug 就是这个。 */
+.bar-lag.ming { background: rgba(255, 170, 90, 0.92); box-shadow: 0 0 8px rgba(255, 130, 60, 0.55); }
+/* 气 / 势 不用残影。把 lag 直接 display:none，杜绝它在 z-index:1 上漏红边出来的可能。 */
+.bar-lag.qi, .bar-lag.shi { display: none; }
+.bar-fill.ming { background: linear-gradient(90deg, var(--blood) 0%, #C84545 100%); box-shadow: 0 0 10px rgba(184,58,28,0.4); }
+.bar-fill.qi   { background: linear-gradient(90deg, var(--gold-2) 0%, #E8C666 100%); box-shadow: 0 0 10px rgba(201,162,75,0.4); }
+.bar-fill.shi  { background: linear-gradient(90deg, #5C7A6C 0%, #9DD0B8 100%); box-shadow: 0 0 10px rgba(157,208,184,0.4); }
+/* 消耗闪光：气/势 在 0.5% 以上瞬降时短暂提亮 + 加饱和。
+   解决"消耗 -10、回复 8/s，1.25s 就回满，中间值看不见"的瞬态盲区。
+   不留残影（残影在气/势上是 noise，已在 setBar useGhost=false 关掉），纯瞬时反馈。 */
+@keyframes bar-consume-flash {
+  0%   { filter: brightness(2.0) saturate(1.5); }
+  40%  { filter: brightness(1.5) saturate(1.25); }
+  100% { filter: brightness(1) saturate(1); }
+}
+.bar-fill.consume-flash { animation: bar-consume-flash 0.22s ease-out; }
+.bar-val {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--paper); min-width: 88px; text-align: right;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.awaken { display: flex; gap: 8px; margin-top: 12px; }
+.awaken-pip {
+  width: 16px; height: 16px;
+  border: 1px solid var(--zhusha);
+  transform: rotate(45deg);
+  position: relative;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.awaken-pip.filled {
+  background: var(--zhusha);
+  box-shadow: 0 0 12px var(--zhusha-glow);
+}
+.awaken-pip.filled::after {
+  content: ""; position: absolute; inset: 3px; background: var(--paper); opacity: 0.55;
+}
+
+.loadout {
+  position: absolute; bottom: 96px; right: 5vw;
+  display: flex; gap: 14px;
+  align-items: flex-end;
+}
+.slot {
+  position: relative;
+  width: 70px; height: 70px;
+  border: 1px solid rgba(237,223,194,0.25);
+  background: rgba(0,0,0,0.42);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai); font-size: 28px; color: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.08s ease;
+}
+.slot:hover { border-color: var(--paper-dim); }
+.slot.active {
+  border-color: var(--zhusha);
+  box-shadow: 0 0 18px var(--zhusha-glow), inset 0 0 14px rgba(184,58,28,0.2);
+}
+.slot-name {
+  position: absolute; top: -34px; left: 50%; transform: translateX(-50%);
+  width: 86px;
+  font-size: 11px; letter-spacing: 0.12em; color: var(--paper-dim);
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+}
+.slot.active .slot-name { color: var(--paper); }
+.slot-detail {
+  position: absolute; left: 50%; bottom: -19px; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em;
+  color: var(--paper-mute);
+  white-space: nowrap;
+}
+.slot-key {
+  position: absolute; top: -8px; left: -8px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(6,6,4,0.62);
+  border: 1.5px solid;
+  display: flex; align-items: center; justify-content: center;
+  font-family: Arial, sans-serif; font-size: 10px; font-weight: 700;
+}
+.slot-key.up    { color: #5AD9B8; border-color: #5AD9B8; }
+.slot-key.right { color: #F26C6C; border-color: #F26C6C; }
+.slot-key.down  { color: #7FBFFF; border-color: #7FBFFF; }
+.slot-key.left  { color: #E67EC0; border-color: #E67EC0; }
+.slot-count {
+  position: absolute; bottom: 2px; right: 4px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--paper);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.slot.disabled {
+  opacity: 0.38;
+  border-style: dashed;
+  cursor: default;
+  box-shadow: none;
+}
+.slot.disabled .slot-name,
+.slot.disabled .slot-detail {
+  color: rgba(237,223,194,0.48);
+}
+.slot.disabled .slot-count {
+  display: none;
+}
+
+.combo {
+  position: absolute; bottom: 18%; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 10px;
+  pointer-events: none;
+}
+.combo-key {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai); font-size: 18px; color: var(--paper);
+  background: rgba(0,0,0,0.36);
+  border: 1px solid var(--paper-dim);
+  letter-spacing: 0.05em;
+}
+.combo-key.hit {
+  border-color: var(--zhusha);
+  background: linear-gradient(180deg, rgba(184,58,28,0.55), rgba(138,40,16,0.6));
+  box-shadow: 0 0 14px var(--zhusha-glow);
+}
+
+@media (max-height: 720px) {
+  .player { bottom: 76px; width: 320px; }
+  .loadout { bottom: 76px; }
+  .slot { width: 56px; height: 56px; font-size: 22px; }
+  .slot-name { width: 72px; top: -31px; font-size: 10px; }
+  .slot-detail { bottom: -17px; font-size: 8px; }
+  .enemy { min-width: 236px; width: min(32vw, 300px); padding: 4px 8px 5px; }
+  .enemy-name { font-size: 15px; }
+  .enemy-rank { font-size: 9px; }
+  .enemy-bar-label { font-size: 12px; width: 14px; }
+  .enemy-bar-value { width: 28px; font-size: 8px; }
+  .footer-bar { height: 60px; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRCombat = {
+  state: {
+    chapter: { seal: "玖", num: "第九幕", name: "寒土孤山" },
+    quest: {
+      tag: "主线任务", title: "山道伏击", obj: "截杀西凉斥候 · 务必生擒什长",
+      done: 0, total: 4
+    },
+    player: {
+      name: "風行客", clazz: "汉刀流",
+      ming: { v: 500, max: 500 },
+      qi:   { v: 100, max: 100 },
+      shi:  { v: 0,   max: 100 },
+      awakenFilled: 1, awakenTotal: 5
+    },
+    enemy: { show: false, name: "西凉斥候", rank: "兵卒", qi: 1.0, shi: 0.0, health: 1.0, posture: 0.0 },
+    loadout: [
+      { id:"weapon", key:"△", keyClass:"up",    name:"环首汉刀", glyph:"刀", detail:"主武器", available:true },
+      { id:"bow",    key:"○", keyClass:"right", name:"角弓",     glyph:"弓", detail:"远程", available:true },
+      { id:"item",   key:"×", keyClass:"down",  name:"金创药",   glyph:"药", detail:"消耗", count:3, available:true },
+      { id:"offhand",key:"□", keyClass:"left",  name:"未配置",   glyph:"副", detail:"副手", available:false }
+    ],
+    activeLoadoutId: "weapon",
+    lastDamageAlertSequence: 0,
+    damageFloatLane: 0,
+    combo: ["挥", "乱", "穿"],
+    comboHit: 1
+  },
+
+  getSelectableLoadoutList() {
+    return (this.state.loadout || []).filter(slot => slot && slot.available !== false);
+  },
+  normalizeActiveLoadout() {
+    const selectable = this.getSelectableLoadoutList();
+    if (!selectable.length) {
+      this.state.activeLoadoutId = "";
+      return;
+    }
+    if (!selectable.some(slot => slot.id === this.state.activeLoadoutId)) {
+      this.state.activeLoadoutId = selectable[0].id;
+    }
+  },
+
+  cycleLoadout(delta) {
+    const list = this.getSelectableLoadoutList();
+    if (!list.length) return;
+    this.normalizeActiveLoadout();
+    const idx = list.findIndex(s => s.id === this.state.activeLoadoutId);
+    this.state.activeLoadoutId = list[(idx + delta + list.length) % list.length].id;
+    this.renderLoadout();
+    SRBridge.send("combat-loadout", { id: this.state.activeLoadoutId });
+  },
+
+  showDamageNumber(amount, exhausted, sequence) {
+    const numericAmount = Math.round(Math.max(0, Number(amount) || 0));
+    if (numericAmount <= 0) return;
+    const normalizedSequence = Number(sequence) || 0;
+    if (normalizedSequence > 0 && normalizedSequence === this.state.lastDamageAlertSequence) return;
+    if (normalizedSequence > 0) this.state.lastDamageAlertSequence = normalizedSequence;
+
+    const root = document.querySelector(".damage-float-root");
+    if (!root) return;
+    const node = document.createElement("div");
+    node.className = "damage-float" + (exhausted ? " exhausted" : "");
+    node.textContent = `-${numericAmount}`;
+    const lane = this.state.damageFloatLane++ % 5;
+    const laneOffsets = [-30, 30, 0, -15, 15];
+    const bottomOffsets = [18, 48, 78, 108, 138];
+    node.style.left = `${50 + laneOffsets[lane]}%`;
+    node.style.bottom = `${bottomOffsets[lane]}px`;
+    root.appendChild(node);
+    window.setTimeout(() => node.remove(), 950);
+  },
+
+  triggerAlert(text) {
+    const el = document.querySelector(".alert-kanji");
+    if (!el) return;
+    el.textContent = text || "破";
+    const wrap = document.querySelector(".alert");
+    wrap.classList.remove("show");
+    void wrap.offsetWidth;
+    wrap.classList.add("show");
+    setTimeout(() => wrap.classList.remove("show"), 600);
+  },
+  back() { SRBridge.back("startup-web-combat"); },
+
+  renderHeader() {
+    const ch = this.state.chapter;
+    document.querySelector(".ch-num").textContent = ch.num;
+    document.querySelector(".ch-name").textContent = ch.name;
+    document.querySelector(".ch-seal").textContent = ch.seal || ch.num.charAt(0);
+
+    const q = this.state.quest;
+    document.querySelector(".quest-tag").textContent = q.tag;
+    document.querySelector(".quest-title").textContent = q.title;
+    document.querySelector(".quest-obj").textContent = q.obj;
+    document.querySelector(".quest-count .done").textContent = q.done;
+    document.querySelector(".quest-count .total").textContent = ` / ${q.total}`;
+  },
+  renderPlayer() {
+    const p = this.state.player;
+    document.querySelector(".player-name").textContent = p.name;
+    document.querySelector(".player-class").textContent = p.clazz;
+
+    // 命要双层（数值即时 + 残影 0.5s 缓动追上，玩家清楚看到刚损失多少）；气 / 势
+    // 不要残影 —— 它们高频消耗+回复，残影会变成 noise。直接平滑跟随就好。
+    // 见 Obisdian/02_游戏设计/05_UIUX/2026-04-30-延迟血条表现层设计.md
+    const setBar = (rowSel, fillCls, valSel, val, max, useGhost) => {
+      const safeMax = Math.max(1, Number(max) || 1);
+      const safeVal = Math.max(0, Number(val) || 0);
+      const pct = Math.max(0, Math.min(100, (safeVal / safeMax) * 100));
+      const fill = document.querySelector(`${rowSel} .bar-fill.${fillCls}`);
+      const lag  = document.querySelector(`${rowSel} .bar-lag.${fillCls}`);
+      if (fill) fill.style.width = pct + "%";
+
+      if (!useGhost && fill) {
+        // 气/势：检测瞬降，触发 0.22s 提亮闪光（不留残影）。
+        const lastPct = parseFloat(fill.dataset.lastPct);
+        if (!isNaN(lastPct) && pct < lastPct - 0.5) {
+          fill.classList.remove("consume-flash");
+          void fill.offsetWidth; // 重置 animation
+          fill.classList.add("consume-flash");
+        }
+        fill.dataset.lastPct = String(pct);
+      }
+
+      if (lag) {
+        if (!useGhost) {
+          lag.style.transition = "none";
+          lag.style.width = pct + "%"; // 永远跟 fill，不出现红影（且 lag 已 display:none）
+        } else {
+          // C++ 在 QiChanged 等信号上 60Hz 推数据，里面夹杂大量 regen 微涨。如果 lag
+          // 每次 push 都 reset，残影动画永远跑不完。用 ghostExpiresAt 锁 500ms 窗口：
+          //   - 显著下跌（>0.5%）：snap 回上次稳定值，CSS transition 缓到新值
+          //   - 微涨 / 平稳：只有窗口外才小幅跟随，避免打断
+          const now = performance.now();
+          const ghostExpiresAt = parseFloat(lag.dataset.ghostExpiresAt || 0);
+          const stablePct = parseFloat(lag.dataset.stablePct);
+          const inGhost = now < ghostExpiresAt;
+          if (!lag.dataset.init) {
+            lag.style.transition = "none";
+            lag.style.width = pct + "%";
+            void lag.offsetWidth;
+            lag.style.transition = "";
+            lag.dataset.init = "1";
+            lag.dataset.stablePct = String(pct);
+            lag.dataset.ghostExpiresAt = "0";
+          } else if (!isNaN(stablePct) && pct < stablePct - 0.5) {
+            lag.style.transition = "none";
+            lag.style.width = stablePct + "%";
+            void lag.offsetWidth;
+            lag.style.transition = "";
+            lag.style.width = pct + "%";
+            lag.dataset.ghostExpiresAt = String(now + 500);
+            lag.dataset.stablePct = String(pct);
+          } else if (!inGhost) {
+            lag.style.transition = "width 0.10s ease-out";
+            lag.style.width = pct + "%";
+            lag.dataset.stablePct = String(pct);
+          }
+          // ghost 窗口内不动
+        }
+      }
+
+      const valEl = document.querySelector(`${rowSel} ${valSel}`);
+      if (valEl) valEl.textContent = `${Math.round(safeVal)} / ${Math.round(safeMax)}`;
+    };
+    setBar(".bar-row.ming", "ming", ".bar-val", p.ming.v, p.ming.max, true);   // 命：要残影
+    setBar(".bar-row.qi",   "qi",   ".bar-val", p.qi.v,   p.qi.max,   false);  // 气：不要
+    setBar(".bar-row.shi",  "shi",  ".bar-val", p.shi.v,  p.shi.max,  false);  // 势：不要
+
+    const awaken = document.querySelector(".awaken");
+    awaken.innerHTML = "";
+    for (let i = 0; i < p.awakenTotal; i++) {
+      const pip = document.createElement("div");
+      pip.className = "awaken-pip" + (i < p.awakenFilled ? " filled" : "");
+      awaken.appendChild(pip);
+    }
+  },
+  renderEnemy() {
+    const e = this.state.enemy;
+    const wrap = document.querySelector(".enemy");
+    wrap.classList.toggle("show", !!e.show);
+    if (!e.show) return;
+    document.querySelector(".enemy-name").textContent = e.name;
+    document.querySelector(".enemy-rank").textContent = e.rank;
+
+    // 三条统一双层结构（fill 立即 + lag 延迟追）。命用 e.health, 气用 e.qi, 势用 e.shi。
+    // C++ 端 BuildCombatPreviewPayload 已经同时塞了 health/qi/shi/posture（见
+    // ARPGCombatArenaValidationSubsystem.cpp:1701-1708）。
+    const setEnemyBar = (rowSel, ratio) => {
+      const safe = Math.max(0, Math.min(1, Number(ratio) || 0));
+      const pct = safe * 100;
+      const fill = document.querySelector(`${rowSel} .fill`);
+      const lag  = document.querySelector(`${rowSel} .lag`);
+      if (!fill) return safe;
+      fill.style.width = pct + "%";
+      if (lag) {
+        if (!lag.dataset.init) {
+          lag.style.transition = "none";
+          lag.style.width = pct + "%";
+          void lag.offsetWidth;
+          lag.style.transition = "";
+          lag.dataset.init = "1";
+          lag.dataset.lastPct = String(pct);
+        } else {
+          const prev = parseFloat(lag.dataset.lastPct || pct);
+          lag.style.transition = "none";
+          lag.style.width = prev + "%";
+          void lag.offsetWidth;
+          lag.style.transition = "";
+          lag.style.width = pct + "%";
+          lag.dataset.lastPct = String(pct);
+        }
+      }
+      return safe;
+    };
+
+    const mingRatio = Number.isFinite(Number(e.health)) ? Number(e.health) : 1;
+    const qiRatio   = Number.isFinite(Number(e.qi))     ? Number(e.qi)     : Number(e.health) || 0;
+    const shiRatio  = Number.isFinite(Number(e.shi))    ? Number(e.shi)    : Number(e.posture) || 0;
+    const safeMing = setEnemyBar(".enemy-bar-row.ming", mingRatio);
+    const safeQi   = setEnemyBar(".enemy-bar-row.qi",   qiRatio);
+    const safeShi  = setEnemyBar(".enemy-bar-row.shi",  shiRatio);
+    document.querySelector(".enemy-bar-row.ming .enemy-bar-value").textContent = `${Math.round(safeMing * 100)}%`;
+    document.querySelector(".enemy-bar-row.qi   .enemy-bar-value").textContent = `${Math.round(safeQi   * 100)}%`;
+    document.querySelector(".enemy-bar-row.shi  .enemy-bar-value").textContent = `${Math.round(safeShi  * 100)}%`;
+  },
+  renderLoadout() {
+    this.normalizeActiveLoadout();
+    const wrap = document.querySelector(".loadout");
+    wrap.innerHTML = "";
+    this.state.loadout.forEach(slot => {
+      const available = slot.available !== false;
+      const count = Number.isFinite(Number(slot.count)) ? Number(slot.count) : null;
+      const displayName = slot.name || (available ? "未命名" : "未配置");
+      const glyph = slot.glyph || "—";
+      const detail = slot.detail || "";
+      const node = document.createElement("div");
+      node.className =
+        "slot"
+        + (slot.id === this.state.activeLoadoutId ? " active" : "")
+        + (available ? "" : " disabled");
+      node.innerHTML = `
+        <div class="slot-name">${displayName}</div>
+        <div class="slot-key ${slot.keyClass}">${slot.key}</div>
+        <div>${glyph}</div>
+        ${detail ? `<div class="slot-detail">${detail}</div>` : ""}
+        ${count !== null && count >= 0 ? `<div class="slot-count">×${count}</div>` : ""}
+      `;
+      if (available) {
+        node.addEventListener("click", () => {
+          this.state.activeLoadoutId = slot.id;
+          this.renderLoadout();
+          SRBridge.send("combat-loadout", { id: slot.id });
+        });
+      }
+      wrap.appendChild(node);
+    });
+  },
+  renderCombo() {
+    const wrap = document.querySelector(".combo");
+    wrap.innerHTML = "";
+    this.state.combo.forEach((c, idx) => {
+      const node = document.createElement("div");
+      node.className = "combo-key" + (idx < this.state.comboHit ? " hit" : "");
+      node.textContent = c;
+      wrap.appendChild(node);
+    });
+  },
+  render() {
+    this.renderHeader();
+    this.renderPlayer();
+    this.renderEnemy();
+    this.renderLoadout();
+    this.renderCombo();
+  }
+};
+
+ue.interface.setCombatData = function(data) {
+  if (!data) return;
+  // 调试日志：每次 C++ 推数据进来都打一行，能看到推送频率 + 关键值
+  if (data.player && data.player.qi) {
+    console.log(`[push] qi=${data.player.qi.v}/${data.player.qi.max} ming=${data.player.ming && data.player.ming.v}/${data.player.ming && data.player.ming.max} alert=${data.alert ? data.alert.text+'/'+data.alert.signal : '(none)'}`);
+  } else {
+    console.log(`[push] partial data, no player.qi. keys=${Object.keys(data).join(',')}`);
+  }
+  Object.assign(window.SRCombat.state, data);
+  window.SRCombat.render();
+  if (data.alert && data.alert.text) {
+    const signal = String(data.alert.signal || "");
+    const normalizedSignal = signal.toLowerCase();
+    if (normalizedSignal.includes("damageui")) {
+      window.SRCombat.showDamageNumber(data.alert.magnitude, signal.includes("Exhausted"), data.alert.sequence);
+    } else {
+      window.SRCombat.triggerAlert(data.alert.text);
+    }
+  }
+};
+
+// Demo: tap 1/2/3 to fire alerts; ←→ cycle loadout.
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRCombat.back(); }
+  else if (e.key === "ArrowLeft"  || e.key === "a" || e.key === "A") { e.preventDefault(); SRCombat.cycleLoadout(-1); }
+  else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); SRCombat.cycleLoadout(1); }
+  else if (e.key === "1") SRCombat.triggerAlert("破");
+  else if (e.key === "2") SRCombat.triggerAlert("挡");
+  else if (e.key === "3") SRCombat.triggerAlert("化");
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRCombat.render();
+  SRBridge.ready("startup-web-combat");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="vignette"></div>
+
+  <div class="scene-tag">
+    <div class="seal ch-seal"></div>
+    <div class="ch-meta">
+      <div class="ch-num"></div>
+      <div class="ch-name"></div>
+    </div>
+  </div>
+
+  <section class="quest">
+    <div class="quest-tag"></div>
+    <div class="quest-title"></div>
+    <div class="quest-obj"></div>
+    <div class="quest-count"><span class="done"></span><span class="total"></span></div>
+  </section>
+
+  <div class="alert"><div class="alert-kanji">破</div></div>
+  <div class="damage-float-root" aria-hidden="true"></div>
+
+  <section class="enemy">
+    <div class="enemy-label">
+      <div class="enemy-name"></div>
+      <div class="enemy-rank"></div>
+    </div>
+    <div class="enemy-bars">
+      <div class="enemy-bar-row ming">
+        <div class="enemy-bar-label">命</div>
+        <div class="bar-thin ming"><div class="lag"></div><div class="fill"></div></div>
+        <div class="enemy-bar-value"></div>
+      </div>
+      <div class="enemy-bar-row qi">
+        <div class="enemy-bar-label">气</div>
+        <div class="bar-thin"><div class="lag"></div><div class="fill"></div></div>
+        <div class="enemy-bar-value"></div>
+      </div>
+      <div class="enemy-bar-row shi">
+        <div class="enemy-bar-label">势</div>
+        <div class="bar-posture"><div class="lag"></div><div class="fill"></div></div>
+        <div class="enemy-bar-value"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="player">
+    <div class="player-head">
+      <div class="player-name"></div>
+      <div class="player-class"></div>
+    </div>
+    <div class="bar-row ming">
+      <div class="bar-label">命</div>
+      <div class="bar"><div class="bar-lag ming"></div><div class="bar-fill ming"></div></div>
+      <div class="bar-val"></div>
+    </div>
+    <div class="bar-row qi">
+      <div class="bar-label">气</div>
+      <div class="bar"><div class="bar-lag qi"></div><div class="bar-fill qi"></div></div>
+      <div class="bar-val"></div>
+    </div>
+    <div class="bar-row shi">
+      <div class="bar-label">势</div>
+      <div class="bar"><div class="bar-lag shi"></div><div class="bar-fill shi"></div></div>
+      <div class="bar-val"></div>
+    </div>
+    <div class="awaken"></div>
+  </section>
+
+  <section class="loadout"></section>
+
+  <div class="combo"></div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta">战斗 HUD · DEV 预览 · 二〇二六</div>
+    <div class="prompts">
+      <div class="prompt"><span class="key cross">✕</span>攻</div>
+      <div class="prompt"><span class="key triangle">△</span>武</div>
+      <div class="prompt"><span class="key square">□</span>气</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+    </div>
+  </footer>
+</main>
+</body>
+</html>

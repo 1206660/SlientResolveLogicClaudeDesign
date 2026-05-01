@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 剧情演绎 · WebUI</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+.stage {
+  background: #050405;
+}
+
+/* Letterbox bars (top + bottom) come in from offscreen on load. */
+.bar-top,
+.bar-bottom {
+  position: absolute; left: 0; right: 0;
+  height: 17vh;
+  background: #050404;
+  z-index: 30;
+  transform: translateY(-100%);
+  transition: transform 380ms cubic-bezier(0.25, 0.85, 0.4, 1);
+}
+.bar-top    { top: 0; }
+.bar-bottom { bottom: 0; transform: translateY(100%); }
+.stage.cine-on .bar-top    { transform: translateY(0); }
+.stage.cine-on .bar-bottom { transform: translateY(0); }
+
+/* Backdrop hint of cutscene scene */
+.scene {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 50% 35% at 50% 40%, rgba(184,58,28,0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 60%, rgba(0,0,0,0.55), transparent 70%),
+    linear-gradient(180deg, #0F0B07 0%, #18120B 50%, #08070A 100%);
+}
+.silhouette {
+  position: absolute; left: 50%; bottom: 24%; transform: translateX(-50%);
+  width: 26vw; max-width: 380px; opacity: 0.92;
+}
+
+.chapter-mark {
+  position: absolute; top: 4vh; left: 50%; transform: translateX(-50%);
+  text-align: center;
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 480ms ease;
+}
+.stage.cine-on .chapter-mark { opacity: 1; }
+.chapter-mark .num {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.4em; color: var(--paper-mute);
+  margin-bottom: 6px;
+}
+.chapter-mark .name {
+  font-family: var(--font-kai); font-size: 22px; font-weight: 700;
+  letter-spacing: 0.32em; color: var(--paper);
+}
+.chapter-mark .divider {
+  width: 60px; height: 1px;
+  margin: 8px auto 0;
+  background: linear-gradient(90deg, transparent, var(--zhusha), transparent);
+  box-shadow: 0 0 6px var(--zhusha-glow);
+}
+
+.caption {
+  position: absolute; bottom: 22vh; left: 0; right: 0;
+  text-align: center;
+  padding: 0 8vw;
+  z-index: 40;
+}
+.caption-speaker {
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 0.4em;
+  color: var(--zhusha-bright);
+  margin-bottom: 10px;
+}
+.caption-line {
+  font-family: var(--font-kai);
+  font-size: clamp(20px, 2.0vw, 32px);
+  line-height: 1.7;
+  letter-spacing: 0.14em;
+  color: var(--paper);
+  text-shadow: 0 2px 14px rgba(0,0,0,0.85);
+  min-height: 4em;
+}
+.caption-line .typed {
+  display: inline-block;
+  vertical-align: top;
+}
+.caption-line .cursor {
+  display: inline-block;
+  width: 8px; height: 1.1em;
+  background: var(--paper);
+  margin-left: 4px; vertical-align: text-bottom;
+  opacity: 0.85;
+  animation: cine-cursor 0.7s steps(2) infinite;
+}
+.caption-line.done .cursor { display: none; }
+
+@keyframes cine-cursor {
+  0%, 50%   { opacity: 0.85; }
+  50.01%, 100% { opacity: 0.0; }
+}
+
+.progress {
+  position: absolute; bottom: 19vh; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 6px;
+  z-index: 40;
+}
+.progress .dot {
+  width: 7px; height: 7px;
+  background: rgba(237,223,194,0.30);
+  border: 1px solid rgba(237,223,194,0.22);
+  transform: rotate(45deg);
+  transition: background 0.2s ease;
+}
+.progress .dot.done { background: var(--zhusha); }
+.progress .dot.now {
+  background: var(--paper);
+  box-shadow: 0 0 10px rgba(237,223,194,0.55);
+}
+
+.controls {
+  position: absolute; bottom: 4.6vh; left: 0; right: 0;
+  z-index: 60;
+  display: flex; justify-content: center; gap: 20px;
+}
+.cine-btn {
+  font-family: var(--font-kai); font-size: 14px; letter-spacing: 0.32em;
+  color: var(--paper-2);
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--line-mid);
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+}
+.cine-btn:hover { color: var(--paper); border-color: var(--paper-dim); background: rgba(237,223,194,0.06); }
+.cine-btn:active { transform: translateY(1px); }
+.cine-btn.primary {
+  border-color: var(--zhusha); color: var(--paper);
+  background: linear-gradient(180deg, rgba(184,58,28,0.5), rgba(138,40,16,0.6));
+  box-shadow: 0 0 14px var(--zhusha-glow);
+}
+.cine-btn.primary:hover { background: linear-gradient(180deg, rgba(216,85,40,0.7), rgba(184,58,28,0.7)); }
+
+@media (max-height: 720px) {
+  .footer-bar { display: none; }
+  .controls { bottom: 6vh; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRCinematic = {
+  state: {
+    chapter: { num: "贰 · 第三幕", name: "山村回忆 · 灵儿戏水" },
+    nodeIndex: 0,
+    typing: false,
+    typedLen: 0,
+    typeTimer: null,
+    nodes: [
+      { speaker: "旁白", line: "雨初停。竹梢上挂着水珠，落在井边的石阶上。" },
+      { speaker: "灵儿", line: "舅父，你回来啦——" },
+      { speaker: "風行客", line: "灵儿……还认得我吗？" },
+      { speaker: "灵儿", line: "我只记得，井里的鱼会游到天上去。" },
+      { speaker: "旁白", line: "他没有回答，只是把斗笠放下，火光映在他眉梢。" }
+    ]
+  },
+
+  current() { return this.state.nodes[this.state.nodeIndex]; },
+
+  setChapter(c) {
+    if (!c) return;
+    this.state.chapter = Object.assign({}, this.state.chapter, c);
+    this.renderChapter();
+  },
+
+  start() {
+    document.querySelector(".stage").classList.add("cine-on");
+    this.renderChapter();
+    this.startNode();
+  },
+
+  startNode() {
+    const node = this.current();
+    if (!node) return;
+    document.querySelector(".caption-speaker").textContent = node.speaker || "";
+    const lineEl = document.querySelector(".caption-line");
+    lineEl.classList.remove("done");
+    const typedEl = document.querySelector(".caption-line .typed");
+    typedEl.textContent = "";
+
+    this.state.typing = true;
+    this.state.typedLen = 0;
+    if (this.state.typeTimer) clearInterval(this.state.typeTimer);
+    this.state.typeTimer = setInterval(() => {
+      this.state.typedLen++;
+      typedEl.textContent = node.line.slice(0, this.state.typedLen);
+      if (this.state.typedLen >= node.line.length) {
+        clearInterval(this.state.typeTimer);
+        this.state.typeTimer = null;
+        this.state.typing = false;
+        lineEl.classList.add("done");
+      }
+    }, 38);
+    this.renderProgress();
+  },
+
+  finishTyping() {
+    if (!this.state.typing) return;
+    if (this.state.typeTimer) { clearInterval(this.state.typeTimer); this.state.typeTimer = null; }
+    const node = this.current();
+    document.querySelector(".caption-line .typed").textContent = node.line;
+    document.querySelector(".caption-line").classList.add("done");
+    this.state.typing = false;
+  },
+
+  next() {
+    if (this.state.typing) { this.finishTyping(); return; }
+    if (this.state.nodeIndex >= this.state.nodes.length - 1) {
+      this.finish();
+      return;
+    }
+    this.state.nodeIndex++;
+    this.startNode();
+    SRBridge.send("cinematic-advance", { nodeIndex: this.state.nodeIndex });
+  },
+
+  replay() {
+    this.state.nodeIndex = 0;
+    this.startNode();
+    SRBridge.send("cinematic-replay", {});
+  },
+
+  skip() {
+    if (this.state.typeTimer) { clearInterval(this.state.typeTimer); this.state.typeTimer = null; }
+    this.state.nodeIndex = this.state.nodes.length - 1;
+    this.startNode();
+    setTimeout(() => this.finishTyping(), 50);
+    SRBridge.send("cinematic-skip", {});
+  },
+
+  finish() {
+    SRBridge.send("cinematic-finish", { surface: "startup-web-cinematic" });
+    SRBridge.toast("山村回忆 · 启程", { tone: "quest", title: "剧情", ttl: 2000 });
+  },
+
+  back() { SRBridge.back("startup-web-cinematic"); },
+
+  renderChapter() {
+    const c = this.state.chapter;
+    document.querySelector(".chapter-mark .num").textContent  = c.num || "";
+    document.querySelector(".chapter-mark .name").textContent = c.name || "";
+  },
+
+  renderProgress() {
+    const wrap = document.querySelector(".progress");
+    wrap.innerHTML = "";
+    this.state.nodes.forEach((_, idx) => {
+      const dot = document.createElement("div");
+      dot.className = "dot";
+      if (idx < this.state.nodeIndex) dot.classList.add("done");
+      else if (idx === this.state.nodeIndex) dot.classList.add("now");
+      wrap.appendChild(dot);
+    });
+  }
+};
+
+ue.interface.setCinematicData = function(data) {
+  if (!data) return;
+  if (data.chapter) window.SRCinematic.setChapter(data.chapter);
+  if (Array.isArray(data.nodes)) {
+    window.SRCinematic.state.nodes = data.nodes;
+    window.SRCinematic.state.nodeIndex = 0;
+    window.SRCinematic.startNode();
+  }
+};
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRCinematic.back(); }
+  else if (e.key === "Enter" || e.key === " ")     { e.preventDefault(); SRCinematic.next(); }
+  else if (e.key === "r" || e.key === "R")         { e.preventDefault(); SRCinematic.replay(); }
+  else if (e.key === "Tab")                         { e.preventDefault(); SRCinematic.skip(); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRBridge.ready("startup-web-cinematic");
+  // Slight delay so the letterbox + chapter title slide in elegantly.
+  setTimeout(() => SRCinematic.start(), 120);
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="scene"></div>
+  <svg class="silhouette" viewBox="0 0 580 700" aria-hidden="true">
+    <g fill="#040303" opacity="0.96">
+      <ellipse cx="290" cy="190" rx="100" ry="32"/>
+      <rect x="278" y="190" width="24" height="60"/>
+      <ellipse cx="290" cy="248" rx="22" ry="28"/>
+      <path d="M225,260 L210,360 L195,520 L188,690 L235,700 L345,700 L392,690 L385,520 L370,360 L355,260 Q290,240 225,260 Z"/>
+      <rect x="378" y="320" width="6" height="240" transform="rotate(8 381 440)"/>
+      <rect x="370" y="312" width="22" height="6" transform="rotate(8 381 315)"/>
+      <circle cx="381" cy="305" r="9" fill="none" stroke="#040303" stroke-width="3"/>
+    </g>
+  </svg>
+
+  <div class="bar-top"></div>
+  <div class="bar-bottom"></div>
+
+  <div class="chapter-mark">
+    <div class="num"></div>
+    <div class="name"></div>
+    <div class="divider"></div>
+  </div>
+
+  <section class="caption">
+    <div class="caption-speaker"></div>
+    <div class="caption-line"><span class="typed"></span><span class="cursor"></span></div>
+  </section>
+
+  <div class="progress"></div>
+
+  <div class="controls">
+    <button class="cine-btn" type="button" onclick="window.SRCinematic.skip()">跳过 [Tab]</button>
+    <button class="cine-btn primary" type="button" onclick="window.SRCinematic.next()">下一句 [Enter]</button>
+    <button class="cine-btn" type="button" onclick="window.SRCinematic.replay()">重 演 [R]</button>
+  </div>
+</main>
+</body>
+</html>

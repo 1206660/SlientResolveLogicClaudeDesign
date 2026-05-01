@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 载入存档 · WebUI</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+.stage { background: linear-gradient(180deg, #0C0907 0%, #14110C 100%); }
+
+.header { position:absolute; top:0; left:0; right:0; height:110px;
+  display:flex; align-items:center; padding: 0 5vw; border-bottom: 1px solid var(--line); }
+.bc-kanji { font-size: clamp(40px,4.2vw,60px); font-weight:900; letter-spacing:0.2em; }
+.bc-path  { margin-left:auto; display:flex; gap:14px;
+  font-family: var(--font-mono); font-size: 13px; color: var(--paper-dim); letter-spacing: 0.25em; }
+.bc-path .sep { opacity:0.4; } .bc-path .cur { color: var(--zhusha-bright); }
+
+.seal.corner-seal-2 { position:absolute; top:38px; right:5vw; width:56px; height:56px;
+  font-size:32px; transform: rotate(-3deg); z-index:5; }
+
+.body {
+  position:absolute; top:110px; left:0; right:0; bottom:72px;
+  padding: 36px 6vw;
+  overflow-y:auto;
+}
+
+.slots {
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+.slot {
+  position:relative;
+  display: grid;
+  grid-template-columns: 220px 1fr 200px;
+  gap: 28px;
+  padding: 18px 22px;
+  background: rgba(20, 17, 13, 0.55);
+  border: 1px solid var(--line-mid);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.08s ease;
+}
+.slot:hover { background: rgba(20, 17, 13, 0.85); border-color: var(--paper-dim); }
+.slot.active {
+  border-color: var(--zhusha);
+  background: linear-gradient(90deg, rgba(184,58,28,0.12) 0%, rgba(20,17,13,0.85) 80%);
+}
+.slot.active::before {
+  content:""; position:absolute; left:0; top:0; bottom:0; width: 3px;
+  background: var(--zhusha); box-shadow: 0 0 14px var(--zhusha-glow);
+}
+
+.thumb {
+  width: 220px; height: 132px;
+  background: linear-gradient(180deg, #14110D 0%, #1F1A14 100%);
+  border: 1px solid var(--line);
+  position: relative; overflow: hidden;
+}
+.thumb::after {
+  content: attr(data-glyph);
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai); font-size: 80px; font-weight: 900;
+  color: rgba(237,223,194, 0.10);
+}
+
+.info { min-width: 0; }
+.info-row { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+.slot-tag {
+  display:inline-block;
+  padding: 1px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.3em;
+  color: var(--paper);
+  background: var(--zhusha);
+}
+.slot-tag.empty { background: transparent; color: var(--paper-mute); border: 1px solid var(--paper-mute); }
+.slot-tag.auto  { background: var(--gold); color: var(--ink-1); }
+.slot-name { font-size: 22px; letter-spacing: 0.2em; color: var(--paper); }
+.slot.empty .slot-name { color: var(--paper-mute); }
+.slot-where { font-family: var(--font-kai); font-size: 14px; color: var(--paper-dim); margin-bottom: 4px; letter-spacing: 0.1em; }
+.slot-stats {
+  display: grid; grid-template-columns: repeat(3, auto);
+  gap: 4px 18px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--paper-mute); letter-spacing: 0.16em;
+  margin-top: 6px;
+}
+.slot-stats span.k { color: var(--paper-dim); }
+
+.timestamp {
+  text-align: right;
+  align-self: stretch;
+  display:flex; flex-direction: column; justify-content: space-between;
+}
+.timestamp .when {
+  font-family: var(--font-kai); font-size: 14px;
+  letter-spacing: 0.2em;
+  color: var(--paper-2);
+}
+.timestamp .ago {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--paper-mute);
+  letter-spacing: 0.18em;
+  margin-top: 4px;
+}
+.timestamp .duration {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--paper-dim); letter-spacing: 0.18em;
+}
+
+@media (max-height: 720px) {
+  .header { height: 84px; } .body { top: 84px; bottom: 60px; padding: 22px 4vw; }
+  .footer-bar { height: 60px; } .seal.corner-seal-2 { top: 22px; width: 44px; height: 44px; font-size: 26px; }
+  .thumb { width: 160px; height: 96px; }
+  .slot { grid-template-columns: 160px 1fr 180px; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRLoad = {
+  state: {
+    activeIndex: 0,
+    slots: [
+      { id: "auto",  tag: "续旅", tagClass: "auto", glyph: "续",
+        name: "自动存档",
+        where: "第三幕 · 山村回忆 · 灵儿戏水",
+        stats: [["体", "92 / 100"], ["气", "3 / 6"], ["银", "0.42 两"]],
+        when: "二〇二六/四/二四 · 廿二·四一", ago: "刚刚", duration: "已游 12 时" },
+      { id: "slot1", tag: "存档 壹", tagClass: "", glyph: "壹",
+        name: "雪行 · 古道",
+        where: "第二幕 · 漠北 · 出居延关",
+        stats: [["体", "80 / 100"], ["气", "2 / 6"], ["银", "0.18 两"]],
+        when: "二〇二六/四/二三 · 〇九·一七", ago: "昨日", duration: "已游 8 时" },
+      { id: "slot2", tag: "存档 貳", tagClass: "", glyph: "貳",
+        name: "归乡 · 山村南口",
+        where: "第三幕 · 山村回忆 · 旧屋",
+        stats: [["体", "78 / 100"], ["气", "4 / 6"], ["银", "0.31 两"]],
+        when: "二〇二六/四/二二 · 廿三·〇五", ago: "三日前", duration: "已游 11 时" },
+      { id: "slot3", tag: "存档 參", tagClass: "empty", glyph: "參",
+        name: "〔尚无存档〕",
+        where: "—",
+        stats: [],
+        when: "—", ago: "", duration: "" },
+      { id: "slot4", tag: "存档 肆", tagClass: "empty", glyph: "肆",
+        name: "〔尚无存档〕",
+        where: "—",
+        stats: [],
+        when: "—", ago: "", duration: "" }
+    ]
+  },
+
+  setActive(idx) {
+    if (idx < 0 || idx >= this.state.slots.length) return;
+    this.state.activeIndex = idx;
+    this.render();
+  },
+  cycle(delta) { this.setActive((this.state.activeIndex + delta + this.state.slots.length) % this.state.slots.length); },
+  commit() {
+    const slot = this.state.slots[this.state.activeIndex];
+    if (!slot || slot.tagClass === "empty") return;
+    SRBridge.send("load-slot", { slotId: slot.id });
+  },
+  delete() {
+    const slot = this.state.slots[this.state.activeIndex];
+    if (!slot || slot.tagClass === "empty") return;
+    SRBridge.send("delete-slot", { slotId: slot.id });
+  },
+  back() { SRBridge.back("startup-web-load"); },
+
+  render() {
+    const wrap = document.querySelector(".slots");
+    wrap.innerHTML = "";
+    this.state.slots.forEach((slot, idx) => {
+      const isEmpty = slot.tagClass === "empty";
+      const node = document.createElement("div");
+      node.className = "slot" + (idx === this.state.activeIndex ? " active" : "") + (isEmpty ? " empty" : "");
+      const statsHtml = (slot.stats || []).map(s => `<span class="k">${s[0]}</span><span>${s[1]}</span>`).join("");
+      node.innerHTML = `
+        <div class="thumb" data-glyph="${slot.glyph}"></div>
+        <div class="info">
+          <div class="info-row">
+            <div class="slot-tag ${slot.tagClass}">${slot.tag}</div>
+            <div class="slot-name">${slot.name}</div>
+          </div>
+          <div class="slot-where">${slot.where}</div>
+          <div class="slot-stats">${statsHtml}</div>
+        </div>
+        <div class="timestamp">
+          <div>
+            <div class="when">${slot.when}</div>
+            <div class="ago">${slot.ago}</div>
+          </div>
+          <div class="duration">${slot.duration}</div>
+        </div>`;
+      node.addEventListener("mouseenter", () => this.setActive(idx));
+      node.addEventListener("click", () => { this.setActive(idx); this.commit(); });
+      wrap.appendChild(node);
+    });
+  }
+};
+
+ue.interface.setLoadData = function(data) {
+  if (data && data.slots) {
+    window.SRLoad.state.slots = data.slots;
+  }
+  window.SRLoad.render();
+};
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRLoad.back(); }
+  else if (e.key === "Enter" || e.key === " ")     { e.preventDefault(); SRLoad.commit(); }
+  else if (e.key === "Delete")                      { e.preventDefault(); SRLoad.delete(); }
+  else if (e.key === "ArrowUp"   || e.key === "w" || e.key === "W") { e.preventDefault(); SRLoad.cycle(-1); }
+  else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); SRLoad.cycle(1); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRLoad.render();
+  SRBridge.ready("startup-web-load");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="header">
+    <div class="bc-kanji">载入存档</div>
+    <div class="bc-path"><span>主页</span><span class="sep">·</span><span>存档</span><span class="sep">·</span><span class="cur">续旅</span></div>
+  </div>
+  <div class="seal corner-seal-2">载</div>
+
+  <div class="body">
+    <div class="slots"></div>
+  </div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta">载入存档 · 内测版 · 二〇二六</div>
+    <div class="prompts">
+      <div class="prompt"><span class="key cross">✕</span>载入</div>
+      <div class="prompt"><span class="key triangle">△</span>删档</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+    </div>
+  </footer>
+</main>
+</body>
+</html>

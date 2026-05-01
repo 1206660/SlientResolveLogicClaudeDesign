@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 暂停 · WebUI</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+.stage {
+  background: rgba(8, 6, 4, 0.78);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.panel {
+  position: relative;
+  width: min(420px, 76vw);
+  padding: 44px 44px 40px;
+  background: linear-gradient(180deg, rgba(20,17,13,0.96) 0%, rgba(10,9,7,0.96) 100%);
+  border: 1px solid rgba(184,58,28,0.45);
+  box-shadow: 0 20px 60px rgba(184,58,28,0.20), 0 0 0 1px rgba(184,58,28,0.18);
+  text-align: center;
+}
+.panel::before {
+  content: ""; position: absolute; inset: 4px;
+  border: 1px solid rgba(237,223,194,0.05);
+  pointer-events: none;
+}
+
+.kanji {
+  font-family: var(--font-kai);
+  font-size: 56px; font-weight: 900; letter-spacing: 0.32em;
+  color: var(--paper);
+  text-shadow: 0 0 24px rgba(237,223,194,0.3);
+  margin-bottom: 6px;
+}
+.subline {
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 0.4em;
+  color: var(--paper-mute);
+  margin-bottom: 28px;
+}
+.divider {
+  width: 70%; height: 1px; margin: 0 auto 28px;
+  background: linear-gradient(90deg, transparent, var(--zhusha), transparent);
+  box-shadow: 0 0 6px var(--zhusha-glow);
+}
+
+.menu {
+  display: flex; flex-direction: column; gap: 10px;
+  align-items: stretch;
+}
+.menu-item {
+  position: relative;
+  padding: 12px 16px 12px 36px;
+  font-family: var(--font-kai);
+  font-size: 22px; letter-spacing: 0.32em;
+  color: var(--paper-dim);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.18s ease, text-shadow 0.18s ease, background 0.18s ease;
+}
+.menu-item::before {
+  content: ""; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  width: 0; height: 1.5px;
+  background: var(--zhusha);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+  transition: width 0.18s ease;
+}
+.menu-item:hover,
+.menu-item.active {
+  color: var(--paper);
+  text-shadow: 0 0 18px rgba(237,223,194,0.18);
+  background: rgba(237,223,194,0.03);
+}
+.menu-item.active { font-weight: 700; }
+.menu-item.active::before { width: 18px; }
+.menu-item small {
+  display: block; margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.35em;
+  color: var(--paper-mute);
+}
+
+.hint {
+  margin-top: 22px;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 0.32em;
+  color: var(--paper-mute);
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRPause = {
+  state: {
+    selectedIndex: 0,
+    options: [
+      { id: "Resume",   label: "继续",     hint: "回到当前场景"     },
+      { id: "Settings", label: "设定",     hint: "画面 · 声音 · 操作"  },
+      { id: "Title",    label: "返回标题", hint: "保存进度并回到标题画面" },
+      { id: "Quit",     label: "退出",     hint: "离开游戏"         }
+    ]
+  },
+
+  setSelection(idx) {
+    const n = this.state.options.length;
+    if (!n) return;
+    this.state.selectedIndex = ((idx % n) + n) % n;
+    this.renderMenu();
+  },
+  moveUp()   { this.setSelection(this.state.selectedIndex - 1); },
+  moveDown() { this.setSelection(this.state.selectedIndex + 1); },
+  commit() {
+    const opt = this.state.options[this.state.selectedIndex];
+    if (!opt) return;
+    if (opt.id === "Resume") { SRPause.back(); return; }
+    if (opt.id === "Settings") { SRBridge.send("nav", { to: "settings" }); return; }
+    SRBridge.send("commit", { optionId: opt.id, label: opt.label });
+  },
+  back() { SRBridge.back("startup-web-pause"); },
+
+  renderMenu() {
+    const wrap = document.querySelector(".menu");
+    wrap.innerHTML = "";
+    this.state.options.forEach((opt, idx) => {
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = "menu-item" + (idx === this.state.selectedIndex ? " active" : "");
+      node.innerHTML = `${opt.label}<small>${opt.hint}</small>`;
+      node.addEventListener("mouseenter", () => this.setSelection(idx));
+      node.addEventListener("click", () => { this.setSelection(idx); this.commit(); });
+      wrap.appendChild(node);
+    });
+  }
+};
+
+ue.interface.setPauseData = function(data) {
+  if (data && Array.isArray(data.options)) {
+    window.SRPause.state.options = data.options;
+  }
+  if (data && typeof data.selectedIndex === "number") {
+    window.SRPause.state.selectedIndex = data.selectedIndex;
+  }
+  window.SRPause.renderMenu();
+};
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRPause.back(); }
+  else if (e.key === "Enter" || e.key === " ")     { e.preventDefault(); SRPause.commit(); }
+  else if (e.key === "ArrowUp"   || e.key === "w" || e.key === "W") { e.preventDefault(); SRPause.moveUp(); }
+  else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); SRPause.moveDown(); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRPause.renderMenu();
+  SRBridge.ready("startup-web-pause");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <section class="panel">
+    <div class="kanji">暫</div>
+    <div class="subline">PAUSED · 局中暂停</div>
+    <div class="divider"></div>
+    <nav class="menu" aria-label="暂停菜单"></nav>
+    <div class="hint">↑↓ / ✕ / ○</div>
+  </section>
+</main>
+</body>
+</html>

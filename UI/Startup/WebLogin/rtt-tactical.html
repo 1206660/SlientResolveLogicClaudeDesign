@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTT Tactical WebUI</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: var(--paper);
+  background: transparent;
+}
+
+.panel {
+  position: absolute;
+  border: 1px solid rgba(214, 168, 108, 0.14);
+  background: rgba(10, 9, 7, 0.40);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.status-panel {
+  top: 28px;
+  left: 30px;
+  width: 208px;
+  padding: 9px 10px 10px;
+}
+
+.transient-panel {
+  top: 28px;
+  left: 50%;
+  width: 288px;
+  padding: 9px 10px 10px;
+  transform: translateX(-50%);
+}
+
+.mode-panel {
+  top: 28px;
+  right: 30px;
+  width: 210px;
+  padding: 9px 10px 10px;
+}
+
+.controls-panel {
+  left: 50%;
+  bottom: 24px;
+  width: 520px;
+  padding: 9px 12px 10px;
+  transform: translateX(-50%);
+}
+
+.panel-kicker {
+  color: rgba(224, 186, 128, 0.84);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.status-tier,
+.mode-state {
+  margin-top: 5px;
+  font-family: var(--font-kai);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.transient-message {
+  margin-top: 5px;
+  font-family: var(--font-kai);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+}
+
+.transient-meta,
+.status-line,
+.controls-recent {
+  margin-top: 5px;
+  color: rgba(219, 206, 181, 0.74);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+}
+
+.meter-row {
+  margin-top: 6px;
+}
+
+.meter-bar {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(168, 54, 30, 0.92), rgba(217, 173, 89, 0.96));
+  box-shadow: 0 0 14px rgba(168, 54, 30, 0.26);
+}
+
+.meter-text,
+.mode-meta {
+  margin-top: 5px;
+  color: rgba(232, 223, 205, 0.86);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.controls-hint {
+  margin-top: 6px;
+  font-family: var(--font-kai);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+}
+
+.aim-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.aim-arc {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 10 8;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.22));
+  opacity: 0;
+}
+
+.aim-arc.is-out-of-range,
+.aim-impact-ring.is-out-of-range,
+.aim-impact-core.is-out-of-range,
+.aim-impact-cross-h.is-out-of-range,
+.aim-impact-cross-v.is-out-of-range,
+.aim-badge.is-out-of-range {
+  animation: aim-out-of-range-pulse 0.72s ease-in-out infinite;
+}
+
+.aim-badge.is-out-of-range {
+  background: rgba(70, 14, 12, 0.56);
+  box-shadow: 0 10px 20px rgba(90, 20, 18, 0.30);
+}
+
+.aim-impact-ring,
+.aim-impact-core,
+.aim-impact-cross-h,
+.aim-impact-cross-v {
+  opacity: 0;
+}
+
+.aim-impact-ring {
+  fill: none;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.24));
+}
+
+.aim-impact-core {
+  stroke-width: 2;
+}
+
+.aim-impact-cross-h,
+.aim-impact-cross-v {
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes aim-out-of-range-pulse {
+  0% {
+    opacity: 0.42;
+    filter: drop-shadow(0 0 3px rgba(120, 22, 18, 0.20));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 12px rgba(210, 68, 52, 0.46));
+  }
+  100% {
+    opacity: 0.42;
+    filter: drop-shadow(0 0 3px rgba(120, 22, 18, 0.20));
+  }
+}
+
+.aim-badge {
+  position: absolute;
+  min-width: 88px;
+  padding: 5px 8px 6px;
+  border: 1px solid rgba(214, 168, 108, 0.18);
+  background: rgba(10, 9, 7, 0.34);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(8px);
+  transform: translate(-50%, -100%);
+  opacity: 0;
+}
+
+.aim-badge-label {
+  color: rgba(224, 186, 128, 0.82);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+}
+
+.aim-badge-text {
+  margin-top: 3px;
+  color: rgba(248, 238, 224, 0.94);
+  font-family: var(--font-kai);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.execution {
+  position: absolute;
+  min-width: 170px;
+  max-width: 220px;
+  padding: 7px 10px 8px;
+  border: 1px solid rgba(219, 118, 82, 0.54);
+  background: rgba(64, 18, 12, 0.62);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
+  transform: translate(-50%, -100%);
+  opacity: 0;
+}
+
+.execution.show {
+  opacity: 1;
+}
+
+.execution-label {
+  color: rgba(255, 198, 156, 0.92);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+}
+
+.execution-text {
+  margin-top: 4px;
+  font-family: var(--font-kai);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(255, 240, 224, 0.98);
+}
+
+@media (max-width: 1440px) {
+  .controls-panel {
+    width: min(520px, calc(100vw - 48px));
+  }
+
+  .transient-panel {
+    width: min(288px, calc(100vw - 96px));
+  }
+}
+
+@media (max-width: 1280px) {
+  .status-panel,
+  .mode-panel {
+    width: 188px;
+  }
+
+  .controls-panel {
+    width: min(460px, calc(100vw - 40px));
+  }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRTactical = {
+  data: {
+    alertLabel: "隐匿",
+    detectionPct: 0,
+    modeLabel: "战术待机",
+    movementLabel: "移动姿态：战术步行",
+    statusLine: "守卫会根据噪音和视线逐步升级反应。",
+    controlsHint: "R1 投石  ·  L1 拉弓  ·  R2 确认/移动  ·  ○ 潜行  ·  △ 处决",
+    recentInput: "当前专注：观察视野、噪音和掩体，而不是近战连段。",
+    transientLabel: "当前目标",
+    transientMessage: "",
+    transientMeta: "",
+    accent: { r: 0.82, g: 0.72, b: 0.56, a: 1.0 },
+    aim: {
+      visible: false,
+      mode: "none",
+      points: [],
+      impact: { visible: false, valid: false, x: 0, y: 0 }
+    },
+    execution: { visible: false, label: "处决窗口", text: "F / Y 处决", x: 0, y: 0 }
+  },
+
+  setData(data) {
+    this.data = Object.assign({}, this.data, data || {});
+    if (data && data.execution) {
+      this.data.execution = Object.assign({}, this.data.execution, data.execution);
+    }
+    if (data && data.aim) {
+      this.data.aim = Object.assign({}, this.data.aim, data.aim);
+      if (data.aim.impact) {
+        this.data.aim.impact = Object.assign({}, this.data.aim.impact, data.aim.impact);
+      }
+    }
+    this.render();
+  },
+
+  accentCss(alpha = 1) {
+    const c = this.data.accent || { r: 0.82, g: 0.72, b: 0.56, a: 1.0 };
+    const a = (c.a ?? 1) * alpha;
+    return `rgba(${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)}, ${a})`;
+  },
+
+  aimPalette() {
+    if ((this.data.aim && this.data.aim.mode) === "bow") {
+      return {
+        stroke: "rgba(130, 210, 255, 0.92)",
+        impact: "rgba(255, 216, 116, 0.96)",
+        badge: "箭矢落点"
+      };
+    }
+
+    return {
+      stroke: "rgba(232, 196, 112, 0.92)",
+      impact: "rgba(255, 166, 104, 0.96)",
+      badge: "投石落点"
+    };
+  },
+
+  resolvePoint(point) {
+    if (!point) {
+      return { x: 0, y: 0 };
+    }
+
+    if (typeof point.nx === "number" && typeof point.ny === "number") {
+      return {
+        x: point.nx * window.innerWidth,
+        y: point.ny * window.innerHeight
+      };
+    }
+
+    return {
+      x: point.x || 0,
+      y: point.y || 0
+    };
+  },
+
+  syncAimViewport() {
+    const svg = document.querySelector(".aim-layer");
+    if (svg) {
+      svg.setAttribute("viewBox", `0 0 ${window.innerWidth} ${window.innerHeight}`);
+    }
+  },
+
+  readPreviewConfigFromHash() {
+    const rawHash = window.location.hash ? window.location.hash.slice(1) : "";
+    const params = new URLSearchParams(rawHash);
+    const stateText = params.get("state");
+    const backdrop = params.get("backdrop");
+    let state = null;
+
+    if (stateText) {
+      try {
+        state = JSON.parse(decodeURIComponent(stateText));
+      } catch (error) {
+        console.warn("RTT preview state parse failed", error);
+      }
+    }
+
+    return { state, backdrop };
+  },
+
+  renderAim() {
+    this.syncAimViewport();
+
+    const aim = this.data.aim || {};
+    const palette = this.aimPalette();
+    const arc = document.querySelector(".aim-arc");
+    const impactRing = document.querySelector(".aim-impact-ring");
+    const impactCore = document.querySelector(".aim-impact-core");
+    const impactCrossH = document.querySelector(".aim-impact-cross-h");
+    const impactCrossV = document.querySelector(".aim-impact-cross-v");
+    const badge = document.querySelector(".aim-badge");
+    const badgeLabel = document.querySelector(".aim-badge-label");
+    const badgeText = document.querySelector(".aim-badge-text");
+
+    const points = Array.isArray(aim.points) ? aim.points : [];
+    const resolvedPoints = points.map((point) => this.resolvePoint(point));
+    const pointString = resolvedPoints.map((point) => `${point.x},${point.y}`).join(" ");
+    const impact = aim.impact || {};
+    const resolvedImpact = this.resolvePoint(impact);
+    const canShowArc = !!aim.visible && points.length > 1;
+    const canShowImpact = !!impact.visible;
+    const maxRangeMeters = Number(aim.maxRangeMeters || 0);
+    const isThrowOutOfRange = aim.mode === "throw" && !!aim.outOfRange;
+
+    [arc, impactRing, impactCore, impactCrossH, impactCrossV, badge].forEach((element) => {
+      element.classList.toggle("is-out-of-range", isThrowOutOfRange);
+    });
+
+    arc.style.stroke = isThrowOutOfRange ? "rgba(224, 72, 56, 0.96)" : palette.stroke;
+    arc.style.opacity = canShowArc ? "1" : "0";
+    arc.setAttribute("points", pointString);
+
+    if (canShowImpact) {
+      const ringColor = impact.valid ? palette.impact : "rgba(214, 76, 60, 0.96)";
+      const coreColor = impact.valid ? palette.impact : "rgba(255, 118, 102, 0.96)";
+      const x = resolvedImpact.x || 0;
+      const y = resolvedImpact.y || 0;
+
+      impactRing.style.opacity = "1";
+      impactCore.style.opacity = "1";
+      impactCrossH.style.opacity = "1";
+      impactCrossV.style.opacity = "1";
+      impactRing.style.stroke = ringColor;
+      impactCore.style.stroke = coreColor;
+      impactCrossH.style.stroke = coreColor;
+      impactCrossV.style.stroke = coreColor;
+      impactRing.setAttribute("cx", x);
+      impactRing.setAttribute("cy", y);
+      impactRing.setAttribute("r", impact.valid ? 18 : 14);
+      impactCore.setAttribute("cx", x);
+      impactCore.setAttribute("cy", y);
+      impactCore.setAttribute("r", impact.valid ? 5 : 4);
+      impactCrossH.setAttribute("x1", x - 6);
+      impactCrossH.setAttribute("y1", y);
+      impactCrossH.setAttribute("x2", x + 6);
+      impactCrossH.setAttribute("y2", y);
+      impactCrossV.setAttribute("x1", x);
+      impactCrossV.setAttribute("y1", y - 6);
+      impactCrossV.setAttribute("x2", x);
+      impactCrossV.setAttribute("y2", y + 6);
+
+      badge.style.display = "block";
+      badge.style.opacity = "1";
+      badge.style.left = `${x}px`;
+      badge.style.top = `${y - 22}px`;
+      badge.style.borderColor = impact.valid ? this.accentCss(0.16) : "rgba(214, 76, 60, 0.24)";
+      if (isThrowOutOfRange && maxRangeMeters > 0) {
+        badgeLabel.textContent = "OUT OF RANGE";
+        badgeText.textContent = `超出最大投射范围（${maxRangeMeters.toFixed(Number.isInteger(maxRangeMeters) ? 0 : 1)}米）`;
+      } else {
+        badgeLabel.textContent = (aim.mode === "bow") ? "BOW AIM" : "THROW AIM";
+        badgeText.textContent = impact.valid ? palette.badge : "落点无效";
+      }
+    } else {
+      impactRing.style.opacity = "0";
+      impactCore.style.opacity = "0";
+      impactCrossH.style.opacity = "0";
+      impactCrossV.style.opacity = "0";
+      badge.style.display = "none";
+      badge.style.opacity = "0";
+    }
+  },
+
+  render() {
+    document.querySelector(".status-tier").textContent = this.data.alertLabel || "隐匿";
+    document.querySelector(".mode-state").textContent = this.data.modeLabel || "战术待机";
+    document.querySelector(".mode-meta").textContent = this.data.movementLabel || "";
+    document.querySelector(".status-line").textContent = this.data.statusLine || "";
+    document.querySelector(".meter-fill").style.width = `${Math.max(0, Math.min(100, this.data.detectionPct || 0))}%`;
+    document.querySelector(".meter-fill").style.background = `linear-gradient(90deg, rgba(168, 54, 30, 0.92), ${this.accentCss(0.96)})`;
+    document.querySelector(".meter-text").textContent = `侦测进度 ${this.data.detectionPct || 0}%`;
+    document.querySelector(".controls-hint").textContent = this.data.controlsHint || "";
+    document.querySelector(".controls-recent").textContent = this.data.recentInput || "";
+
+    document.querySelector(".transient-label").textContent = this.data.transientLabel || "战术更新";
+    document.querySelector(".transient-message").textContent = this.data.transientMessage || "";
+    document.querySelector(".transient-meta").textContent = this.data.transientMeta || "";
+    const transientPanel = document.querySelector(".transient-panel");
+    transientPanel.style.display = this.data.transientMessage ? "block" : "none";
+    transientPanel.style.borderColor = this.accentCss(0.20);
+
+    document.querySelector(".status-tier").style.color = this.accentCss(1);
+    document.querySelector(".mode-state").style.color = this.accentCss(1);
+
+    this.renderAim();
+
+    const execution = document.querySelector(".execution");
+    const executionLabel = document.querySelector(".execution-label");
+    const executionText = document.querySelector(".execution-text");
+    const resolvedExecution = this.resolvePoint(this.data.execution);
+    executionLabel.textContent = (this.data.execution && this.data.execution.label) || "处决窗口";
+    executionText.textContent = (this.data.execution && this.data.execution.text) || "F / Y 处决";
+
+    if (this.data.execution && this.data.execution.visible) {
+      execution.classList.add("show");
+      execution.style.left = `${resolvedExecution.x || 0}px`;
+      execution.style.top = `${resolvedExecution.y || 0}px`;
+      execution.style.display = "block";
+    } else {
+      execution.classList.remove("show");
+      execution.style.display = "none";
+    }
+  }
+};
+
+ue.interface.setRTTTacticalData = function(data) {
+  if (!data) return;
+  window.SRTactical.setData(data);
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  const preview = window.SRTactical.readPreviewConfigFromHash();
+  if (preview.backdrop === "night") {
+    document.body.style.background = [
+      "radial-gradient(circle at 20% 18%, rgba(255,255,255,0.12), transparent 20%)",
+      "radial-gradient(circle at 78% 28%, rgba(244,195,120,0.10), transparent 18%)",
+      "linear-gradient(180deg, rgba(36,46,62,1) 0%, rgba(20,28,42,1) 45%, rgba(16,20,29,1) 100%)"
+    ].join(",");
+  }
+
+  if (preview.state) {
+    window.SRTactical.setData(preview.state);
+  } else {
+    window.SRTactical.render();
+  }
+  ue5("ready", { surface: "rtt-tactical-webui" });
+});
+
+window.addEventListener("resize", () => {
+  window.SRTactical.renderAim();
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <svg class="aim-layer" aria-hidden="true">
+    <polyline class="aim-arc"></polyline>
+    <circle class="aim-impact-ring"></circle>
+    <circle class="aim-impact-core"></circle>
+    <line class="aim-impact-cross-h"></line>
+    <line class="aim-impact-cross-v"></line>
+  </svg>
+
+  <section class="panel status-panel">
+    <div class="panel-kicker">RTT 战术态势</div>
+    <div class="status-tier"></div>
+    <div class="meter-row">
+      <div class="meter-bar"><div class="meter-fill"></div></div>
+      <div class="meter-text"></div>
+    </div>
+    <div class="status-line"></div>
+  </section>
+
+  <section class="panel transient-panel">
+    <div class="panel-kicker transient-label"></div>
+    <div class="transient-message"></div>
+    <div class="transient-meta"></div>
+  </section>
+
+  <section class="panel mode-panel">
+    <div class="panel-kicker">当前模式</div>
+    <div class="mode-state"></div>
+    <div class="mode-meta"></div>
+  </section>
+
+  <section class="panel controls-panel">
+    <div class="panel-kicker">战术操作</div>
+    <div class="controls-hint"></div>
+    <div class="controls-recent"></div>
+  </section>
+
+  <section class="aim-badge" style="display:none;">
+    <div class="aim-badge-label"></div>
+    <div class="aim-badge-text"></div>
+  </section>
+
+  <section class="execution">
+    <div class="execution-label"></div>
+    <div class="execution-text"></div>
+  </section>
+</main>
+</body>
+</html>

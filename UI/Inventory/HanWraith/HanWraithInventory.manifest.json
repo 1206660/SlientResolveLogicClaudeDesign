@@ -1,0 +1,29 @@
+{
+  "screenId": "han-wraith-inventory",
+  "framework": "CommonUI+UMG+MVVM",
+  "rootAssetPath": "/Game/CoreLogic/UI/Inventory/HanWraith",
+  "screenWidgetClass": "/Script/SlientResolveLogic.SlientResolveInventoryScreenWidget",
+  "tileWidgetClass": "/Script/SlientResolveLogic.SlientResolveInventoryTileButton",
+  "expectedAssets": [
+    "/Game/CoreLogic/UI/Inventory/HanWraith/WBP_HanWraithInventoryScreen",
+    "/Game/CoreLogic/UI/Inventory/HanWraith/WBP_HanWraithInventoryTile",
+    "/Game/CoreLogic/UI/Inventory/HanWraith/WBP_HanWraithInventoryCategoryButton",
+    "/Game/CoreLogic/UI/Inventory/HanWraith/WBP_HanWraithInventoryDetailPanel"
+  ],
+  "layoutZones": [
+    "LeftCategoryRail",
+    "CenterInventoryBoard",
+    "RightDetailPanel",
+    "BottomActionBar"
+  ],
+  "actionTags": [
+    "UI.Action.Cancel",
+    "UI.Action.Confirm",
+    "UI.Action.NextTab",
+    "UI.Action.PreviousTab",
+    "UI.Action.Inventory.Compare",
+    "UI.Action.Inventory.Details",
+    "UI.Action.Inventory.Equip",
+    "UI.Action.Inventory.Sort"
+  ]
+}

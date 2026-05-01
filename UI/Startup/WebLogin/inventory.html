@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 行囊 · WebUI</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+.stage { background: linear-gradient(180deg, #0C0907 0%, #14110C 100%); }
+
+.header {
+  position:absolute; top:0; left:0; right:0; height: 110px;
+  display:flex; align-items:center; padding: 0 5vw;
+  border-bottom: 1px solid var(--line);
+}
+.bc-kanji { font-size: clamp(40px,4.2vw,60px); font-weight:900; letter-spacing:0.2em; }
+.bc-path  { margin-left:auto; display:flex; align-items:center; gap:14px;
+            font-family: var(--font-mono); font-size: 13px;
+            color: var(--paper-dim); letter-spacing: 0.25em; }
+.bc-path .sep { opacity: 0.4; }
+.bc-path .cur { color: var(--zhusha-bright); }
+
+.seal.corner-seal-2 { position:absolute; top:38px; right:5vw; width:56px; height:56px;
+  font-size:32px; transform: rotate(-3deg); z-index:5; }
+
+.body { position:absolute; top:110px; left:0; right:0; bottom:72px;
+  display:grid; grid-template-columns: 240px 1fr 360px; }
+
+.tabs {
+  border-right: 1px solid var(--line);
+  padding: 30px 0; background: rgba(0,0,0,0.28);
+  overflow-y:auto;
+}
+.tab {
+  position:relative; display:flex; align-items:center; gap: 14px;
+  padding: 16px 30px; cursor: pointer;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.18s ease;
+}
+.tab:hover { background: rgba(237,223,194,0.04); }
+.tab.active {
+  background: linear-gradient(90deg, rgba(184,58,28,0.13) 0%, transparent 100%);
+}
+.tab.active::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: var(--zhusha); box-shadow: 0 0 14px var(--zhusha-glow); }
+.tab-num { font-family: var(--font-kai); font-size: 22px; font-weight:900;
+  color: var(--paper-mute); min-width: 28px; text-align:center; }
+.tab.active .tab-num { color: var(--zhusha-bright); }
+.tab-name { font-size: 22px; letter-spacing: 0.4em; padding-left: 0.4em; color: var(--paper-dim); }
+.tab.active .tab-name { color: var(--paper); font-weight:700; }
+.tab-count { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--paper-mute); letter-spacing: 0.2em; }
+
+.grid-area {
+  padding: 36px 5vw; overflow-y:auto;
+  background: radial-gradient(ellipse 60% 80% at 30% 30%, rgba(184,58,28,0.03), transparent 70%);
+}
+.grid-head { display:flex; align-items:baseline; gap:24px; margin-bottom:24px;
+  padding-bottom:18px; border-bottom: 1px solid var(--line); }
+.grid-title { font-size: 30px; font-weight:700; letter-spacing: 0.22em; }
+.grid-hint  { margin-left:auto; font-family: var(--font-mono); font-size: 12px; color: var(--paper-mute); letter-spacing: 0.2em; }
+
+.grid {
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 14px;
+}
+.cell {
+  position:relative; aspect-ratio: 1 / 1;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--line-mid);
+  display:flex; flex-direction: column; align-items:center; justify-content: center;
+  cursor: pointer; transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.cell:hover { border-color: var(--paper-dim); }
+.cell.active { border-color: var(--zhusha); box-shadow: 0 0 0 2px rgba(184,58,28,0.4); }
+.cell.empty { opacity: 0.3; }
+.cell-rune {
+  font-family: var(--font-kai);
+  font-size: 38px; font-weight:900;
+  color: var(--paper-2);
+}
+.cell.active .cell-rune { color: var(--paper); }
+.cell-tier { position:absolute; top:6px; left:6px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--gold); }
+.cell-stack { position:absolute; bottom:6px; right:8px; font-family: var(--font-mono); font-size: 12px; color: var(--paper-dim); }
+
+.detail {
+  border-left: 1px solid var(--line);
+  padding: 36px;
+  background: rgba(0,0,0,0.30);
+  overflow-y:auto;
+}
+.detail-name { font-size: 26px; letter-spacing: 0.22em; margin-bottom: 6px; }
+.detail-cat  { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3em; color: var(--zhusha-bright); }
+.detail-divider { width:100%; height:1px; margin:24px 0;
+  background: linear-gradient(90deg, var(--zhusha), transparent);
+  box-shadow: 0 0 6px var(--zhusha-glow); }
+.detail-flavor { font-family: var(--font-kai); font-size: 14px; line-height: 1.8; color: var(--paper-dim); letter-spacing: 0.05em; }
+.detail-stats { margin-top: 22px; display:grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+.detail-stats .row { display:flex; justify-content:space-between; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.detail-stats .n { font-size: 13px; color: var(--paper-dim); letter-spacing: 0.18em; }
+.detail-stats .v { font-family: var(--font-mono); color: var(--paper); }
+
+@media (max-height: 720px) {
+  .header { height: 84px; } .body { top: 84px; bottom: 60px; }
+  .footer-bar { height: 60px; } .seal.corner-seal-2 { top: 22px; width: 44px; height: 44px; font-size: 26px; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRInventory = {
+  state: {
+    activeTabId: "weapon",
+    activeItemId: "han_dao",
+    tabs: [
+      { id:"weapon", num:"壹", name:"兵器" },
+      { id:"armor",  num:"貳", name:"甲胄" },
+      { id:"ornm",   num:"參", name:"佩饰" },
+      { id:"consum", num:"肆", name:"用具" },
+      { id:"craft",  num:"伍", name:"材集" },
+      { id:"key",    num:"陸", name:"机要" }
+    ],
+    items: {
+      weapon: [
+        { id:"han_dao", rune:"刀", name:"环首汉刀", tier:"上品", stack:1, cat:"汉刀 · 单手",
+          flavor: "环首汉刀，朴素如山，沉稳如根。", stats:[{n:"伤害",v:"42"},{n:"耐久",v:"98 / 100"},{n:"重量",v:"2.4 斤"},{n:"重击",v:"+25%"}] },
+        { id:"hua_jian", rune:"剑", name:"花纹剑", tier:"中品", stack:1, cat:"剑 · 单手",
+          flavor: "纹路如山溪，柔中有刚。", stats:[{n:"伤害",v:"36"},{n:"耐久",v:"86 / 100"},{n:"重量",v:"1.8 斤"}] }
+      ],
+      armor: [
+        { id:"buyi", rune:"衣", name:"布衣", tier:"凡品", stack:1, cat:"上身",
+          flavor: "棉麻平织，朴素轻便。", stats:[{n:"减伤",v:"5%"},{n:"重量",v:"1.2 斤"}] },
+        { id:"piejia", rune:"甲", name:"片甲", tier:"中品", stack:1, cat:"上身",
+          flavor: "皮甲缀片铁，劳战之物。", stats:[{n:"减伤",v:"22%"},{n:"重量",v:"4.6 斤"}] }
+      ],
+      ornm:   [{ id:"jade", rune:"玦", name:"汉玉玦", tier:"上品", stack:1, cat:"佩饰",
+                  flavor: "古玉一片，凉而不寒。", stats:[{n:"气恢复",v:"+10%"},{n:"重量",v:"0.1 斤"}] }],
+      consum: [{ id:"ganliang", rune:"粮", name:"干粮", tier:"凡品", stack:8, cat:"食",
+                  flavor: "麦粉饼，耐放耐饿。", stats:[{n:"恢复",v:"30 体"}] },
+                { id:"yao", rune:"药", name:"金创药", tier:"中品", stack:3, cat:"药",
+                  flavor: "草药末敷伤，止血生肌。", stats:[{n:"恢复",v:"50 血"}] }],
+      craft:  [{ id:"tie", rune:"铁", name:"生铁块", tier:"凡品", stack:12, cat:"材",
+                  flavor: "黝黑生铁，匠人之始。", stats:[{n:"用途",v:"打造 / 升阶"}] }],
+      key:    [{ id:"jiance", rune:"册", name:"汉简残册", tier:"机要", stack:1, cat:"剧情",
+                  flavor: "残竹简上字迹斑驳，'寒土孤山'四字尚清。", stats:[{n:"用途",v:"剧情"}] }]
+    }
+  },
+  setTab(id) {
+    if (!this.state.items[id]) return;
+    this.state.activeTabId = id;
+    const first = this.state.items[id][0];
+    if (first) this.state.activeItemId = first.id;
+    this.render();
+  },
+  setItem(id) {
+    this.state.activeItemId = id;
+    this.renderGrid(); this.renderDetail();
+    SRBridge.send("inventory-select", { tabId: this.state.activeTabId, itemId: id });
+  },
+  cycleTab(delta) {
+    const tabs = this.state.tabs;
+    const idx = tabs.findIndex(t => t.id === this.state.activeTabId);
+    this.setTab(tabs[(idx + delta + tabs.length) % tabs.length].id);
+  },
+  cycleItem(delta) {
+    const list = this.state.items[this.state.activeTabId] || [];
+    if (!list.length) return;
+    const idx = list.findIndex(i => i.id === this.state.activeItemId);
+    const next = (idx + delta + list.length) % list.length;
+    this.setItem(list[next].id);
+  },
+  cycleItemRow(delta) {
+    // Approximate "row" by computing columns from rendered grid. Default to 1.
+    const grid = document.querySelector(".grid");
+    if (!grid) return this.cycleItem(delta);
+    const styles = window.getComputedStyle(grid);
+    const cols = styles.gridTemplateColumns.split(" ").length || 1;
+    this.cycleItem(delta * cols);
+  },
+  commitItem() {
+    const list = this.state.items[this.state.activeTabId] || [];
+    const item = list.find(i => i.id === this.state.activeItemId);
+    if (!item) return;
+    SRBridge.send("inventory-use", { tabId: this.state.activeTabId, itemId: item.id });
+    SRBridge.toast(`使用：${item.name}`, { tone: "default", title: "行囊", ttl: 1500 });
+  },
+  back() { SRBridge.back("startup-web-inventory"); },
+
+  renderTabs() {
+    const wrap = document.querySelector(".tabs");
+    wrap.innerHTML = "";
+    this.state.tabs.forEach(t => {
+      const node = document.createElement("div");
+      node.className = "tab" + (t.id === this.state.activeTabId ? " active" : "");
+      const items = this.state.items[t.id] || [];
+      node.innerHTML = `<div class="tab-num">${t.num}</div><div class="tab-name">${t.name}</div><div class="tab-count">${items.length} 件</div>`;
+      node.addEventListener("click", () => this.setTab(t.id));
+      wrap.appendChild(node);
+    });
+  },
+  renderGrid() {
+    const wrap = document.querySelector(".grid-area");
+    wrap.innerHTML = "";
+    const tab = this.state.tabs.find(t => t.id === this.state.activeTabId);
+    const head = document.createElement("div");
+    head.className = "grid-head";
+    head.innerHTML = `<div class="grid-title">${tab ? tab.name : ""}</div><div class="grid-hint">行囊 · 共 ${this.state.items[this.state.activeTabId].length} 件</div>`;
+    wrap.appendChild(head);
+
+    const grid = document.createElement("div"); grid.className = "grid";
+    this.state.items[this.state.activeTabId].forEach(item => {
+      const cell = document.createElement("div");
+      cell.className = "cell" + (item.id === this.state.activeItemId ? " active" : "");
+      cell.innerHTML = `
+        <div class="cell-tier">${item.tier || ""}</div>
+        <div class="cell-rune">${item.rune}</div>
+        ${item.stack > 1 ? `<div class="cell-stack">×${item.stack}</div>` : ""}
+      `;
+      cell.addEventListener("click", () => this.setItem(item.id));
+      grid.appendChild(cell);
+    });
+    // Pad with 6 empty slots for the visual grid feel
+    for (let i = 0; i < 6; i++) {
+      const empty = document.createElement("div"); empty.className = "cell empty";
+      grid.appendChild(empty);
+    }
+    wrap.appendChild(grid);
+  },
+  renderDetail() {
+    const wrap = document.querySelector(".detail");
+    wrap.innerHTML = "";
+    const items = this.state.items[this.state.activeTabId];
+    const item = items.find(i => i.id === this.state.activeItemId) || items[0];
+    if (!item) return;
+    wrap.innerHTML = `
+      <div class="detail-name">${item.name}</div>
+      <div class="detail-cat">${item.cat || ""} · ${item.tier || ""}</div>
+      <div class="detail-divider"></div>
+      <div class="detail-flavor">${item.flavor || ""}</div>
+      <div class="detail-stats">
+        ${(item.stats || []).map(s => `<div class="row"><span class="n">${s.n}</span><span class="v">${s.v}</span></div>`).join("")}
+      </div>`;
+  },
+  renderBreadcrumb() {
+    const cur = this.state.tabs.find(t => t.id === this.state.activeTabId);
+    document.querySelector(".bc-path .cur").textContent = cur ? cur.name : "";
+  },
+  render() { this.renderTabs(); this.renderGrid(); this.renderDetail(); this.renderBreadcrumb(); }
+};
+
+ue.interface.setInventoryData = function() { window.SRInventory.render(); };
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRInventory.back(); }
+  else if (e.key === "Tab") { e.preventDefault(); SRInventory.cycleTab(e.shiftKey ? -1 : 1); }
+  else if (e.key === "ArrowLeft"  || e.key === "a" || e.key === "A") { e.preventDefault(); SRInventory.cycleItem(-1); }
+  else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); SRInventory.cycleItem(1); }
+  else if (e.key === "ArrowUp"    || e.key === "w" || e.key === "W") { e.preventDefault(); SRInventory.cycleItemRow(-1); }
+  else if (e.key === "ArrowDown"  || e.key === "s" || e.key === "S") { e.preventDefault(); SRInventory.cycleItemRow(1); }
+  else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); SRInventory.commitItem(); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRInventory.render();
+  SRBridge.ready("startup-web-inventory");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="header">
+    <div class="bc-kanji">行囊</div>
+    <div class="bc-path"><span>主页</span><span class="sep">·</span><span>行囊</span><span class="sep">·</span><span class="cur">兵器</span></div>
+  </div>
+  <div class="seal corner-seal-2">囊</div>
+
+  <div class="body">
+    <div class="tabs"></div>
+    <div class="grid-area"></div>
+    <div class="detail"></div>
+  </div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta">行囊 · DEV 预览 · 二〇二六</div>
+    <div class="prompts">
+      <div class="prompt"><span class="key square">□</span>切换分类</div>
+      <div class="prompt"><span class="key cross">✕</span>使用</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+    </div>
+  </footer>
+</main>
+</body>
+</html>

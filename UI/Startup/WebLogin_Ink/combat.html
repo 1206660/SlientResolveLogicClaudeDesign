@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 战斗 HUD · 水墨城阙</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+/* === 水墨 · 城阙战斗 HUD ================================================
+ * Combat 是 透明 HUD，叠加在 3D 战斗画面之上。视觉锚点：
+ *   - scene-tag 改为飘旗式章名（军旗形）
+ *   - wind 改为城墙女墙下的飘旗动画
+ *   - quest 改为军令竹简（黄竹片 + 朱砂封）
+ *   - enemy 改为敌将名牌（黑漆牌 + 朱印名 + 血条/姿态）
+ *   - player 改为城阙下的"将军卡"（朱漆底 + 命/气/势 三色厚条）
+ *   - loadout 改为四块虎符方阵（朱印 glyph + 暗铜底）
+ *   - combo 改为虎符连击 + 朱砂底高亮
+ *   - alert 改为巨大朱砂"破"字 + 双层光晕 + 印章方框
+ * 不能给 HUD 加大背景（叠 3D），所以重在元素本身视觉差异。
+ * SRCombat 命名空间、setCombatData、SRBridge 协议层一致保留。
+ * ============================================================================ */
+
+:root {
+  --blood: #B83A1C;
+  --gold-2: #C9A24B;
+  --jade: #9DD0B8;
+}
+
+html, body { background: transparent !important; }
+.stage { background: transparent; }
+
+/* 边缘暗角更轻 —— 不抢战斗画面 */
+.vignette {
+  background:
+    radial-gradient(ellipse 78% 70% at 50% 50%, transparent 58%, rgba(0,0,0,0.22) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.10), transparent 28%, transparent 72%, rgba(0,0,0,0.18));
+}
+
+.footer-bar {
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.32));
+  height: 56px;
+}
+
+/* === scene-tag 改飘旗章名 ============================================== */
+.scene-tag {
+  position: absolute; top: 28px; left: 5vw;
+  display: flex; align-items: center; gap: 14px;
+  z-index: 8;
+}
+.ch-seal {
+  position: relative;
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai);
+  font-size: 28px; font-weight: 900;
+  color: var(--paper);
+  background: linear-gradient(180deg, var(--zhusha-bright), var(--zhusha-deep));
+  border: 3px solid #2A1B0E;
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 222, 170, 0.35),
+    inset 0 0 10px rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.55),
+    0 0 18px var(--zhusha-glow);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.55);
+  transform: rotate(-4deg);
+}
+.ch-seal::before {
+  content: "";
+  position: absolute; inset: 4px;
+  border: 1px solid rgba(255, 222, 170, 0.35);
+}
+
+.ch-meta {
+  /* 名牌竹片 */
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(76, 52, 28, 0.18) 0px, rgba(76, 52, 28, 0.18) 1px,
+      transparent 1px, transparent 4px),
+    linear-gradient(180deg, #C99566 0%, #A07546 100%);
+  border-top: 3px solid #2A1B0E;
+  border-bottom: 3px solid #2A1B0E;
+  border-left: 1px solid rgba(220, 184, 122, 0.4);
+  border-right: 1px solid rgba(220, 184, 122, 0.4);
+  padding: 8px 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+  line-height: 1.3;
+}
+.ch-num {
+  font-family: var(--font-kai);
+  font-size: 11px; font-weight: 900;
+  letter-spacing: 0.3em;
+  color: var(--zhusha-deep);
+}
+.ch-name {
+  font-family: var(--font-kai);
+  font-size: 17px; font-weight: 900;
+  letter-spacing: 0.22em;
+  color: #2A1B0E;
+  margin-top: 2px;
+}
+
+/* === wind 改飘旗 ======================================================= */
+.wind {
+  position: absolute; top: 28px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 22px;
+  background: linear-gradient(180deg, rgba(40, 24, 12, 0.72), rgba(20, 12, 6, 0.78));
+  border: 2px solid var(--zhusha);
+  border-left: 6px solid var(--zhusha-bright);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55), 0 0 14px var(--zhusha-glow);
+  z-index: 8;
+}
+.wind::before {
+  /* 左侧飘旗的旗杆 */
+  content: "";
+  position: absolute;
+  top: -10px; bottom: -10px;
+  left: -2px;
+  width: 6px;
+  background: linear-gradient(180deg, #6E4824 0%, #8E5C30 50%, #6E4824 100%);
+  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.55);
+}
+.wind-arrow {
+  width: 56px; height: 4px;
+  background: linear-gradient(90deg, var(--paper-2), var(--paper));
+  position: relative;
+  box-shadow: 0 0 6px rgba(255, 222, 170, 0.5);
+  /* 飘旗动画 */
+  animation: wind-flutter 2.4s ease-in-out infinite;
+}
+.wind-arrow::before {
+  content: "";
+  position: absolute;
+  left: -16px; top: -7px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 18px solid var(--zhusha-bright);
+  filter: drop-shadow(0 0 4px var(--zhusha-glow));
+}
+.wind-arrow::after {
+  content: "";
+  position: absolute;
+  right: 0; top: 50%; transform: translateY(-50%);
+  width: 8px; height: 8px;
+  background: var(--gold);
+  border-radius: 50%;
+  box-shadow: 0 0 14px var(--gold);
+}
+@keyframes wind-flutter {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(1.4); }
+}
+
+.wind-label {
+  font-family: var(--font-kai);
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--paper-2);
+}
+.wind-label .v {
+  color: var(--paper);
+  font-weight: 900;
+  text-shadow: 0 0 6px rgba(255, 222, 170, 0.5);
+}
+.wind-hint {
+  font-family: var(--font-kai);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--zhusha-bright);
+  padding-left: 12px;
+  border-left: 1px solid rgba(220, 184, 122, 0.45);
+}
+
+/* === quest 改军令竹简 ================================================== */
+.quest {
+  position: absolute; top: 28px; right: 5vw;
+  max-width: 320px;
+  text-align: right;
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(76, 52, 28, 0.18) 0px, rgba(76, 52, 28, 0.18) 1px,
+      transparent 1px, transparent 4px),
+    linear-gradient(180deg, #C99566 0%, #A07546 100%);
+  border-top: 4px solid #2A1B0E;
+  border-bottom: 4px solid #2A1B0E;
+  border-left: 4px solid var(--zhusha);
+  padding: 12px 18px 12px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
+  z-index: 8;
+}
+.quest::before {
+  /* 顶端"令"朱印 */
+  content: "令";
+  position: absolute;
+  top: -16px; right: 14px;
+  width: 28px; height: 28px;
+  background: var(--zhusha);
+  border: 2px solid #2A1B0E;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai);
+  font-size: 14px;
+  color: var(--paper);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+}
+.quest-tag {
+  display: inline-block;
+  font-family: var(--font-kai);
+  font-size: 10px; font-weight: 900;
+  letter-spacing: 0.32em;
+  color: var(--paper);
+  background: var(--zhusha-deep);
+  padding: 3px 10px;
+  margin-bottom: 8px;
+  border: 1px solid #2A1B0E;
+}
+.quest-title {
+  font-family: var(--font-kai);
+  font-size: 18px; font-weight: 900;
+  letter-spacing: 0.2em;
+  color: #2A1B0E;
+  margin-bottom: 4px;
+}
+.quest-obj {
+  font-family: var(--font-kai);
+  font-size: 12px;
+  color: #4A2E16;
+  letter-spacing: 0.1em;
+  line-height: 1.55;
+}
+.quest-count {
+  display: inline-flex; gap: 4px;
+  margin-top: 8px;
+  font-family: var(--font-kai);
+  font-size: 13px; font-weight: 900;
+  letter-spacing: 0.16em;
+  background: rgba(40, 24, 12, 0.85);
+  padding: 2px 10px;
+  border: 1px solid var(--zhusha);
+}
+.quest-count .done  { color: var(--gold); }
+.quest-count .total { color: rgba(220, 184, 122, 0.6); }
+
+/* === alert 改巨型朱砂方印 =============================================== */
+.alert {
+  position: absolute; top: 24%; left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  z-index: 9;
+}
+.alert.show { opacity: 1; animation: alert-pulse 0.6s ease-out; }
+.alert-kanji {
+  font-family: var(--font-kai);
+  font-size: 84px; font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--paper);
+  background: var(--zhusha);
+  padding: 24px 36px;
+  border: 6px solid #2A1B0E;
+  text-shadow:
+    0 0 24px rgba(255, 220, 170, 0.85),
+    0 0 60px var(--zhusha-glow),
+    0 4px 8px rgba(0, 0, 0, 0.7);
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 222, 170, 0.32),
+    0 0 48px var(--zhusha-glow),
+    0 0 120px rgba(220, 74, 32, 0.55);
+  display: inline-block;
+}
+
+.damage-float-root {
+  position: absolute;
+  left: 50%;
+  top: 49%;
+  transform: translate(-50%, -50%);
+  width: 260px;
+  height: 180px;
+  pointer-events: none;
+  z-index: 20;
+}
+.damage-float {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  font-family: var(--font-kai);
+  font-size: clamp(26px, 3.2vw, 46px);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: #ffe6cc;
+  text-shadow: 0 2px 0 rgba(70, 8, 3, 0.82), 0 0 18px rgba(184, 58, 28, 0.85);
+  animation: damage-float-rise 0.9s cubic-bezier(0.16, 0.8, 0.24, 1) forwards;
+}
+.damage-float.exhausted {
+  color: #f4d6ff;
+  text-shadow: 0 2px 0 rgba(34, 11, 42, 0.88), 0 0 18px rgba(161, 95, 255, 0.75);
+}
+@keyframes damage-float-rise {
+  0%   { opacity: 0; transform: translate(-50%, 12px) scale(0.82); }
+  14%  { opacity: 1; transform: translate(-50%, 0) scale(1.12); }
+  100% { opacity: 0; transform: translate(-50%, -86px) scale(0.96); }
+}
+
+@keyframes alert-pulse {
+  0%   { transform: translateX(-50%) scale(1.6) rotate(-8deg); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translateX(-50%) scale(1.0) rotate(-3deg); opacity: 0; }
+}
+
+/* === enemy 敌将名牌 ==================================================== */
+.enemy {
+  position: absolute; left: 36%; top: 38%;
+  width: 300px;
+  transform: translateX(-50%);
+  display: none;
+  z-index: 7;
+}
+.enemy.show { display: block; }
+.enemy-label {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(40, 24, 12, 0.85), rgba(20, 12, 6, 0.92));
+  border: 2px solid var(--zhusha);
+  padding: 6px 16px;
+  box-shadow: 0 0 12px var(--zhusha-glow);
+}
+.enemy-name {
+  font-family: var(--font-kai);
+  font-size: 16px; font-weight: 900;
+  letter-spacing: 0.28em;
+  color: var(--paper);
+  text-shadow: 0 0 6px rgba(184, 58, 28, 0.5), 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.enemy-rank {
+  font-family: var(--font-kai);
+  font-size: 11px; font-weight: 900;
+  letter-spacing: 0.32em;
+  color: var(--paper);
+  background: var(--zhusha);
+  padding: 1px 8px;
+  border: 1px solid #2A1B0E;
+}
+
+.bar-thin {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--zhusha);
+  position: relative;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+.bar-thin .fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--blood) 0%, var(--zhusha-bright) 100%);
+  box-shadow: 0 0 8px rgba(184, 58, 28, 0.7);
+}
+.bar-posture {
+  height: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  position: relative;
+  margin-top: 3px;
+  border: 1px solid rgba(220, 184, 122, 0.45);
+}
+.bar-posture .fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--gold-2) 0%, var(--paper) 100%);
+  box-shadow: 0 0 6px rgba(220, 184, 122, 0.5);
+}
+
+/* === player 城阙下将军卡 =============================================== */
+.player {
+  position: absolute; bottom: 96px; left: 5vw;
+  width: 400px;
+  /* 朱漆底 + 城阙女墙边 */
+  background:
+    radial-gradient(ellipse 60% 30% at 0% 50%, rgba(184, 58, 28, 0.25), transparent 70%),
+    linear-gradient(180deg, rgba(40, 24, 12, 0.85), rgba(20, 12, 6, 0.92));
+  border: 3px solid var(--zhusha);
+  border-left: 8px solid var(--zhusha-bright);
+  padding: 16px 22px 16px 28px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6), 0 0 16px var(--zhusha-glow);
+  z-index: 7;
+}
+.player::before {
+  /* 顶端城阙女墙锯齿 */
+  content: "";
+  position: absolute;
+  top: -10px; left: 8px; right: 8px;
+  height: 8px;
+  background:
+    linear-gradient(180deg, #4A2E16 0%, #2A1B0E 100%);
+  clip-path: polygon(
+    0 100%, 0 0, 8% 0, 8% 50%, 16% 50%, 16% 0, 24% 0, 24% 50%, 32% 50%, 32% 0, 40% 0, 40% 50%,
+    48% 50%, 48% 0, 56% 0, 56% 50%, 64% 50%, 64% 0, 72% 0, 72% 50%, 80% 50%, 80% 0, 88% 0,
+    88% 50%, 96% 50%, 96% 0, 100% 0, 100% 100%
+  );
+}
+
+.player-head {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(220, 184, 122, 0.32);
+}
+.player-name {
+  font-family: var(--font-kai);
+  font-size: 24px; font-weight: 900;
+  letter-spacing: 0.28em;
+  color: var(--paper);
+  text-shadow: 0 0 12px rgba(255, 220, 170, 0.5), 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+.player-class {
+  font-family: var(--font-kai);
+  font-size: 11px; font-weight: 900;
+  letter-spacing: 0.32em;
+  color: var(--paper);
+  background: var(--zhusha);
+  padding: 3px 10px;
+  border: 1px solid #2A1B0E;
+  box-shadow: 0 0 6px var(--zhusha-glow);
+}
+
+/* grid 布局：[label 28] [bar 1fr] [val auto]，bar 永远拿到剩余宽度，
+   不会因为 bar 子元素 absolute 触发 flex collapse 0px，也不会 overflow 撑出多行。 */
+.bar-row {
+  display: grid; grid-template-columns: 28px 1fr auto;
+  align-items: center; gap: 12px;
+  margin-bottom: 10px;
+}
+.bar-label {
+  font-family: var(--font-kai);
+  font-size: 22px; font-weight: 900;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.bar-row.ming .bar-label { color: var(--zhusha-bright); }
+.bar-row.qi   .bar-label { color: var(--gold); }
+.bar-row.shi  .bar-label { color: var(--jade); }
+
+.bar {
+  width: 100%;
+  min-width: 0;
+  height: 14px;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(74, 46, 22, 0.45) 0px, rgba(74, 46, 22, 0.45) 4px,
+      transparent 4px, transparent 6px),
+    linear-gradient(180deg, #1A1108 0%, #2A1B0E 100%);
+  border: 2px solid #4A2E16;
+  position: relative;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+/* 双层条 — 见 Obisdian/02_游戏设计/05_UIUX/2026-04-30-延迟血条表现层设计.md
+   命要残影；气/势不要（高频消耗+回复，残影会变 noise）。 */
+.bar-fill, .bar-lag { position: absolute; top: 0; bottom: 0; left: 0; }
+.bar-lag {
+  transition: width 0.35s cubic-bezier(0.16, 0.8, 0.24, 1) 0.15s;
+  background: rgba(255, 222, 170, 0.55);
+  mix-blend-mode: screen;
+}
+.bar-lag.ming {
+  background: rgba(255, 200, 130, 0.95);
+  mix-blend-mode: normal;
+  box-shadow: 0 0 8px rgba(255, 150, 70, 0.6);
+}
+.bar-lag.qi, .bar-lag.shi { display: none; }
+/* width 不能有 transition——会让 bar 追不上 60Hz push 的真值。消耗闪光走 filter 动画，独立。 */
+.bar-fill { z-index: 1; }
+.bar-fill.ming {
+  background: linear-gradient(90deg, var(--blood) 0%, #DC4A20 60%, #FF6038 100%);
+  box-shadow:
+    0 0 10px rgba(184, 58, 28, 0.7),
+    inset 0 0 0 1px rgba(255, 222, 170, 0.32);
+}
+.bar-fill.qi {
+  background: linear-gradient(90deg, var(--gold-2) 0%, var(--gold) 60%, #FFE4B0 100%);
+  box-shadow:
+    0 0 10px rgba(220, 184, 122, 0.7),
+    inset 0 0 0 1px rgba(255, 222, 170, 0.32);
+}
+.bar-fill.shi {
+  background: linear-gradient(90deg, #5C7A6C 0%, var(--jade) 60%, #C8E8DC 100%);
+  box-shadow:
+    0 0 10px rgba(157, 208, 184, 0.7),
+    inset 0 0 0 1px rgba(255, 222, 170, 0.32);
+}
+/* 消耗闪光：气/势 瞬降时短暂提亮，解决"消耗后 1.25s 就 regen 回满，中间值肉眼看不见"。
+   不留残影，纯瞬时反馈。 */
+@keyframes bar-consume-flash {
+  0%   { filter: brightness(2.0) saturate(1.5); }
+  40%  { filter: brightness(1.5) saturate(1.25); }
+  100% { filter: brightness(1) saturate(1); }
+}
+.bar-fill.consume-flash { animation: bar-consume-flash 0.22s ease-out; }
+.bar-val {
+  font-family: var(--font-kai);
+  font-size: 13px; font-weight: 900;
+  color: var(--paper);
+  min-width: 92px; text-align: right;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* awaken 觉醒 朱印星 */
+.awaken { display: flex; gap: 10px; margin-top: 14px; }
+.awaken-pip {
+  width: 18px; height: 18px;
+  border: 2px solid var(--zhusha);
+  background: rgba(0, 0, 0, 0.5);
+  position: relative;
+  transition: all 0.2s ease;
+  /* 印章方块 */
+}
+.awaken-pip.filled {
+  background: var(--zhusha);
+  border-color: #2A1B0E;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 222, 170, 0.45),
+    0 0 12px var(--zhusha-glow);
+}
+.awaken-pip.filled::after {
+  content: "▌";
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-kai);
+  font-size: 12px;
+  color: var(--paper);
+  font-weight: 900;
+}
+
+/* === loadout 四块虎符 ================================================== */
+.loadout {
+  position: absolute; bottom: 96px; right: 5vw;
+  display: flex; gap: 16px;
+  z-index: 7;
+}
+.slot {
+  position: relative;
+  width: 78px; height: 78px;
+  background:
+    radial-gradient(ellipse 80% 30% at 50% 0%, rgba(184, 58, 28, 0.18), transparent 70%),
+    linear-gradient(180deg, #3A2614 0%, #2A1B0E 60%, #1A1108 100%);
+  border: 3px solid #6E4824;
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai);
+  font-size: 32px; font-weight: 900;
+  color: var(--paper);
+  cursor: pointer;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.55);
+  transition: all 0.18s cubic-bezier(0.3, 0.9, 0.4, 1);
+  box-shadow:
+    inset 0 0 0 1px rgba(220, 184, 122, 0.25),
+    0 4px 10px rgba(0, 0, 0, 0.55);
+}
+.slot::before {
+  /* 顶部铜钉条 */
+  content: "";
+  position: absolute;
+  top: 4px; left: 8px; right: 8px;
+  height: 3px;
+  background:
+    radial-gradient(circle 1.5px at 12% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 50% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 88% 50%, #BC8F3A, transparent 55%);
+}
+.slot:hover {
+  transform: translateY(-3px);
+  border-color: rgba(220, 184, 122, 0.55);
+}
+.slot.active {
+  transform: translateY(-4px);
+  border-color: var(--zhusha-bright);
+  background:
+    radial-gradient(ellipse 90% 50% at 50% 0%, rgba(184, 58, 28, 0.32), transparent 70%),
+    linear-gradient(180deg, #5C3318 0%, #3A2614 60%, #2A1B0E 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 222, 170, 0.45),
+    0 0 22px var(--zhusha-glow),
+    0 6px 14px rgba(0, 0, 0, 0.6);
+}
+
+.slot-name {
+  position: absolute;
+  top: -26px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-kai);
+  font-size: 12px; font-weight: 900;
+  letter-spacing: 0.22em;
+  color: var(--paper-2);
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  background: rgba(20, 12, 6, 0.7);
+  padding: 1px 8px;
+  border: 1px solid rgba(220, 184, 122, 0.32);
+}
+.slot.active .slot-name {
+  color: var(--paper);
+  background: var(--zhusha);
+  border-color: #2A1B0E;
+  box-shadow: 0 0 6px var(--zhusha-glow);
+}
+
+.slot-key {
+  position: absolute;
+  top: -10px; left: -10px;
+  width: 26px; height: 26px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(20, 12, 6, 0.85), rgba(0, 0, 0, 0.75));
+  border: 2px solid;
+  display: flex; align-items: center; justify-content: center;
+  font-family: Arial, sans-serif;
+  font-size: 12px; font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+.slot-key.up    { color: #5AD9B8; border-color: #5AD9B8; }
+.slot-key.right { color: #F26C6C; border-color: #F26C6C; }
+.slot-key.down  { color: #7FBFFF; border-color: #7FBFFF; }
+.slot-key.left  { color: #E67EC0; border-color: #E67EC0; }
+
+.slot-count {
+  position: absolute;
+  bottom: 4px; right: 6px;
+  font-family: var(--font-kai);
+  font-size: 12px; font-weight: 900;
+  color: var(--paper);
+  background: var(--zhusha);
+  padding: 0 6px;
+  border: 1px solid #2A1B0E;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+/* === combo 虎符连击 ==================================================== */
+.combo {
+  position: absolute; bottom: 18%; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 10px;
+  pointer-events: none;
+  z-index: 8;
+}
+.combo-key {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai);
+  font-size: 22px; font-weight: 900;
+  color: var(--paper);
+  background: linear-gradient(180deg, rgba(40, 24, 12, 0.85), rgba(20, 12, 6, 0.9));
+  border: 2px solid var(--paper-dim);
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.combo-key.hit {
+  border-color: var(--zhusha-bright);
+  background:
+    radial-gradient(ellipse 90% 50% at 50% 0%, rgba(255, 222, 170, 0.18), transparent 70%),
+    linear-gradient(180deg, var(--zhusha-bright), var(--zhusha-deep));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 222, 170, 0.45),
+    0 0 18px var(--zhusha-glow);
+  transform: translateY(-4px);
+}
+
+.footer-meta {
+  font-family: var(--font-kai);
+  color: var(--paper-2);
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.footer-meta::before { content: "❖ "; color: var(--zhusha-bright); }
+.prompts { display: flex; align-items: center; gap: 22px; }
+.prompt {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--paper-2);
+  font-family: var(--font-kai);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.key {
+  width: 26px; height: 26px;
+  border: 1.5px solid;
+  border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, rgba(20, 12, 6, 0.7), rgba(0, 0, 0, 0.5));
+  font-family: Arial, sans-serif;
+  font-size: 13px; font-weight: 700;
+}
+.key.cross    { color: #DCC288; border-color: #BC8F3A; }
+.key.circle   { color: var(--zhusha-bright); border-color: var(--zhusha); }
+.key.triangle { color: #7A8E5C; border-color: #4A6B3F; }
+.key.square   { color: #C99566; border-color: #6E4824; border-radius: 2px; }
+
+@media (max-height: 720px) {
+  .player { bottom: 76px; width: 340px; padding: 14px 18px 14px 22px; }
+  .loadout { bottom: 76px; gap: 12px; }
+  .slot { width: 64px; height: 64px; font-size: 26px; }
+  .slot-name { font-size: 11px; top: -22px; }
+  .footer-bar { height: 60px; }
+  .alert-kanji { font-size: 64px; padding: 18px 28px; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRCombat = {
+  state: {
+    chapter: { seal: "玖", num: "第九幕", name: "寒土孤山" },
+    quest: {
+      tag: "主线任务", title: "山道伏击", obj: "截杀西凉斥候 · 务必生擒什长",
+      done: 0, total: 4
+    },
+    wind: { dir: "东北", hint: "摇杆追随 · 顺势 +12%" },
+    player: {
+      name: "風行客", clazz: "汉刀流",
+      ming: { v: 500, max: 500 },
+      qi:   { v: 100, max: 100 },
+      shi:  { v: 0,   max: 100 },
+      awakenFilled: 1, awakenTotal: 5
+    },
+    enemy: { show: true, name: "西凉斥候", rank: "兵卒", health: 1.0, posture: 0.0 },
+    loadout: [
+      { id:"weapon", key:"△", keyClass:"up",    name:"环首汉刀", glyph:"刀" },
+      { id:"sub",    key:"○", keyClass:"right", name:"金创药",   glyph:"药", count:3 },
+      { id:"item",   key:"×", keyClass:"down",  name:"风咏 · 聆", glyph:"聆" },
+      { id:"qi",     key:"□", keyClass:"left",  name:"扎根法",   glyph:"根" }
+    ],
+    activeLoadoutId: "weapon",
+    lastDamageAlertSequence: 0,
+    damageFloatLane: 0,
+    combo: ["挥", "乱", "穿"],
+    comboHit: 1
+  },
+
+  cycleLoadout(delta) {
+    const list = this.state.loadout;
+    const idx = list.findIndex(s => s.id === this.state.activeLoadoutId);
+    this.state.activeLoadoutId = list[(idx + delta + list.length) % list.length].id;
+    this.renderLoadout();
+    SRBridge.send("combat-loadout", { id: this.state.activeLoadoutId });
+  },
+
+  showDamageNumber(amount, exhausted, sequence) {
+    const numericAmount = Math.round(Math.max(0, Number(amount) || 0));
+    if (numericAmount <= 0) return;
+    const normalizedSequence = Number(sequence) || 0;
+    if (normalizedSequence > 0 && normalizedSequence === this.state.lastDamageAlertSequence) return;
+    if (normalizedSequence > 0) this.state.lastDamageAlertSequence = normalizedSequence;
+
+    const root = document.querySelector(".damage-float-root");
+    if (!root) return;
+    const node = document.createElement("div");
+    node.className = "damage-float" + (exhausted ? " exhausted" : "");
+    node.textContent = `-${numericAmount}`;
+    const lane = this.state.damageFloatLane++ % 5;
+    const laneOffsets = [-30, 30, 0, -15, 15];
+    const bottomOffsets = [18, 48, 78, 108, 138];
+    node.style.left = `${50 + laneOffsets[lane]}%`;
+    node.style.bottom = `${bottomOffsets[lane]}px`;
+    root.appendChild(node);
+    window.setTimeout(() => node.remove(), 950);
+  },
+
+  triggerAlert(text) {
+    const el = document.querySelector(".alert-kanji");
+    if (!el) return;
+    el.textContent = text || "破";
+    const wrap = document.querySelector(".alert");
+    wrap.classList.remove("show");
+    void wrap.offsetWidth;
+    wrap.classList.add("show");
+    setTimeout(() => wrap.classList.remove("show"), 600);
+  },
+  back() { SRBridge.back("startup-web-combat"); },
+
+  renderHeader() {
+    const ch = this.state.chapter;
+    document.querySelector(".ch-num").textContent = ch.num;
+    document.querySelector(".ch-name").textContent = ch.name;
+    document.querySelector(".ch-seal").textContent = ch.seal || ch.num.charAt(0);
+
+    const w = this.state.wind;
+    document.querySelector(".wind-label .v").textContent = w.dir;
+    document.querySelector(".wind-hint").textContent = w.hint;
+
+    const q = this.state.quest;
+    document.querySelector(".quest-tag").textContent = q.tag;
+    document.querySelector(".quest-title").textContent = q.title;
+    document.querySelector(".quest-obj").textContent = q.obj;
+    document.querySelector(".quest-count .done").textContent = q.done;
+    document.querySelector(".quest-count .total").textContent = ` / ${q.total}`;
+  },
+  renderPlayer() {
+    const p = this.state.player;
+    document.querySelector(".player-name").textContent = p.name;
+    document.querySelector(".player-class").textContent = p.clazz;
+
+    // 命要双层 + 残影；气 / 势 不要残影（高频消耗+回复，残影变 noise）。
+    // 见 Obisdian/02_游戏设计/05_UIUX/2026-04-30-延迟血条表现层设计.md
+    const setBar = (rowSel, fillCls, valSel, val, max, useGhost) => {
+      const safeMax = Math.max(1, Number(max) || 1);
+      const safeVal = Math.max(0, Number(val) || 0);
+      const pct = Math.max(0, Math.min(100, (safeVal / safeMax) * 100));
+      const fill = document.querySelector(`${rowSel} .bar-fill.${fillCls}`);
+      const lag  = document.querySelector(`${rowSel} .bar-lag.${fillCls}`);
+      if (fill) fill.style.width = pct + "%";
+
+      if (!useGhost && fill) {
+        // 气/势：瞬降触发 0.22s 提亮闪光（不留残影）。
+        const lastPct = parseFloat(fill.dataset.lastPct);
+        if (!isNaN(lastPct) && pct < lastPct - 0.5) {
+          fill.classList.remove("consume-flash");
+          void fill.offsetWidth;
+          fill.classList.add("consume-flash");
+        }
+        fill.dataset.lastPct = String(pct);
+      }
+
+      if (lag) {
+        if (!useGhost) {
+          lag.style.transition = "none";
+          lag.style.width = pct + "%";
+        } else {
+          const now = performance.now();
+          const ghostExpiresAt = parseFloat(lag.dataset.ghostExpiresAt || 0);
+          const stablePct = parseFloat(lag.dataset.stablePct);
+          const inGhost = now < ghostExpiresAt;
+          if (!lag.dataset.init) {
+            lag.style.transition = "none";
+            lag.style.width = pct + "%";
+            void lag.offsetWidth;
+            lag.style.transition = "";
+            lag.dataset.init = "1";
+            lag.dataset.stablePct = String(pct);
+          } else if (!isNaN(stablePct) && pct < stablePct - 0.5) {
+            lag.style.transition = "none";
+            lag.style.width = stablePct + "%";
+            void lag.offsetWidth;
+            lag.style.transition = "";
+            lag.style.width = pct + "%";
+            lag.dataset.ghostExpiresAt = String(now + 500);
+            lag.dataset.stablePct = String(pct);
+          } else if (!inGhost) {
+            lag.style.transition = "width 0.10s ease-out";
+            lag.style.width = pct + "%";
+            lag.dataset.stablePct = String(pct);
+          }
+        }
+      }
+      const valEl = document.querySelector(`${rowSel} ${valSel}`);
+      if (valEl) valEl.textContent = `${Math.round(safeVal)} / ${Math.round(safeMax)}`;
+    };
+    setBar(".bar-row.ming", "ming", ".bar-val", p.ming.v, p.ming.max, true);   // 命：要残影
+    setBar(".bar-row.qi",   "qi",   ".bar-val", p.qi.v,   p.qi.max,   false);  // 气：不要
+    setBar(".bar-row.shi",  "shi",  ".bar-val", p.shi.v,  p.shi.max,  false);  // 势：不要
+
+    const awaken = document.querySelector(".awaken");
+    awaken.innerHTML = "";
+    for (let i = 0; i < p.awakenTotal; i++) {
+      const pip = document.createElement("div");
+      pip.className = "awaken-pip" + (i < p.awakenFilled ? " filled" : "");
+      awaken.appendChild(pip);
+    }
+  },
+  renderEnemy() {
+    const e = this.state.enemy;
+    const wrap = document.querySelector(".enemy");
+    wrap.classList.toggle("show", !!e.show);
+    if (!e.show) return;
+    document.querySelector(".enemy-name").textContent = e.name;
+    document.querySelector(".enemy-rank").textContent = e.rank;
+    document.querySelector(".bar-thin .fill").style.width = (e.health * 100) + "%";
+    document.querySelector(".bar-posture .fill").style.width = (e.posture * 100) + "%";
+  },
+  renderLoadout() {
+    const wrap = document.querySelector(".loadout");
+    wrap.innerHTML = "";
+    this.state.loadout.forEach(slot => {
+      const node = document.createElement("div");
+      node.className = "slot" + (slot.id === this.state.activeLoadoutId ? " active" : "");
+      node.innerHTML = `
+        <div class="slot-name">${slot.name}</div>
+        <div class="slot-key ${slot.keyClass}">${slot.key}</div>
+        <div>${slot.glyph}</div>
+        ${slot.count ? `<div class="slot-count">×${slot.count}</div>` : ""}
+      `;
+      node.addEventListener("click", () => {
+        this.state.activeLoadoutId = slot.id;
+        this.renderLoadout();
+        SRBridge.send("combat-loadout", { id: slot.id });
+      });
+      wrap.appendChild(node);
+    });
+  },
+  renderCombo() {
+    const wrap = document.querySelector(".combo");
+    wrap.innerHTML = "";
+    this.state.combo.forEach((c, idx) => {
+      const node = document.createElement("div");
+      node.className = "combo-key" + (idx < this.state.comboHit ? " hit" : "");
+      node.textContent = c;
+      wrap.appendChild(node);
+    });
+  },
+  render() {
+    this.renderHeader();
+    this.renderPlayer();
+    this.renderEnemy();
+    this.renderLoadout();
+    this.renderCombo();
+  }
+};
+
+ue.interface.setCombatData = function(data) {
+  if (!data) return;
+  Object.assign(window.SRCombat.state, data);
+  window.SRCombat.render();
+  if (data.alert && data.alert.text) {
+    const signal = String(data.alert.signal || "");
+    const normalizedSignal = signal.toLowerCase();
+    if (normalizedSignal.includes("damageui")) {
+      window.SRCombat.showDamageNumber(data.alert.magnitude, signal.includes("Exhausted"), data.alert.sequence);
+    } else {
+      window.SRCombat.triggerAlert(data.alert.text);
+    }
+  }
+};
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRCombat.back(); }
+  else if (e.key === "ArrowLeft"  || e.key === "a" || e.key === "A") { e.preventDefault(); SRCombat.cycleLoadout(-1); }
+  else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); SRCombat.cycleLoadout(1); }
+  else if (e.key === "1") SRCombat.triggerAlert("破");
+  else if (e.key === "2") SRCombat.triggerAlert("挡");
+  else if (e.key === "3") SRCombat.triggerAlert("化");
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRCombat.render();
+  SRBridge.ready("startup-web-combat");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="vignette"></div>
+
+  <div class="scene-tag">
+    <div class="seal ch-seal"></div>
+    <div class="ch-meta">
+      <div class="ch-num"></div>
+      <div class="ch-name"></div>
+    </div>
+  </div>
+
+  <div class="wind">
+    <div class="wind-arrow"></div>
+    <div class="wind-label">风向 <span class="v"></span></div>
+    <div class="wind-hint"></div>
+  </div>
+
+  <section class="quest">
+    <div class="quest-tag"></div>
+    <div class="quest-title"></div>
+    <div class="quest-obj"></div>
+    <div class="quest-count"><span class="done"></span><span class="total"></span></div>
+  </section>
+
+  <div class="alert"><div class="alert-kanji">破</div></div>
+  <div class="damage-float-root" aria-hidden="true"></div>
+
+  <section class="enemy">
+    <div class="enemy-label">
+      <div class="enemy-name"></div>
+      <div class="enemy-rank"></div>
+    </div>
+    <div class="bar-thin"><div class="fill"></div></div>
+    <div class="bar-posture"><div class="fill"></div></div>
+  </section>
+
+  <section class="player">
+    <div class="player-head">
+      <div class="player-name"></div>
+      <div class="player-class"></div>
+    </div>
+    <div class="bar-row ming">
+      <div class="bar-label">命</div>
+      <div class="bar"><div class="bar-lag ming"></div><div class="bar-fill ming"></div></div>
+      <div class="bar-val"></div>
+    </div>
+    <div class="bar-row qi">
+      <div class="bar-label">气</div>
+      <div class="bar"><div class="bar-lag qi"></div><div class="bar-fill qi"></div></div>
+      <div class="bar-val"></div>
+    </div>
+    <div class="bar-row shi">
+      <div class="bar-label">势</div>
+      <div class="bar"><div class="bar-lag shi"></div><div class="bar-fill shi"></div></div>
+      <div class="bar-val"></div>
+    </div>
+    <div class="awaken"></div>
+  </section>
+
+  <section class="loadout"></section>
+
+  <div class="combo"></div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta">战斗 HUD · DEV 预览 · 二〇二六</div>
+    <div class="prompts">
+      <div class="prompt"><span class="key cross">✕</span>攻</div>
+      <div class="prompt"><span class="key triangle">△</span>武</div>
+      <div class="prompt"><span class="key square">□</span>气</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+    </div>
+  </footer>
+</main>
+</body>
+</html>

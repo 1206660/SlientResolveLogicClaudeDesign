@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 典故 · WebUI</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+.stage { background: linear-gradient(180deg, #0E0B07 0%, #14110C 100%); }
+
+.header { position: absolute; top: 0; left: 0; right: 0; height: 110px;
+  display: flex; align-items: center; padding: 0 5vw; border-bottom: 1px solid var(--line); }
+.bc-kanji { font-size: clamp(40px, 4.2vw, 60px); font-weight: 900; letter-spacing: 0.2em; }
+.bc-path  { margin-left: auto; display: flex; gap: 14px;
+  font-family: var(--font-mono); font-size: 13px; color: var(--paper-dim); letter-spacing: 0.25em; }
+.bc-path .sep { opacity: 0.4; } .bc-path .cur { color: var(--zhusha-bright); }
+
+.seal.corner-seal-2 { position: absolute; top: 38px; right: 5vw; width: 56px; height: 56px;
+  font-size: 32px; transform: rotate(-3deg); z-index: 5; }
+
+.body {
+  position: absolute; top: 110px; left: 0; right: 0; bottom: 72px;
+  display: grid; grid-template-columns: 240px 280px 1fr;
+}
+
+.cats {
+  border-right: 1px solid var(--line);
+  padding: 30px 0;
+  background: rgba(0,0,0,0.30);
+  overflow-y: auto;
+}
+.cat {
+  position: relative; padding: 14px 26px; cursor: pointer;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.18s ease;
+}
+.cat:hover { background: rgba(237,223,194,0.04); }
+.cat.active {
+  background: linear-gradient(90deg, rgba(184,58,28,0.13) 0%, transparent 100%);
+}
+.cat.active::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: var(--zhusha); box-shadow: 0 0 14px var(--zhusha-glow); }
+.cat-num  { font-family: var(--font-kai); font-size: 16px; font-weight:900; color: var(--paper-mute); margin-bottom: 2px; }
+.cat.active .cat-num { color: var(--zhusha-bright); }
+.cat-name { font-size: 18px; letter-spacing: 0.32em; color: var(--paper-dim); }
+.cat.active .cat-name { color: var(--paper); font-weight: 700; }
+
+.entries {
+  border-right: 1px solid var(--line);
+  padding: 24px 0;
+  background: rgba(0,0,0,0.18);
+  overflow-y: auto;
+}
+.entry-row {
+  position: relative;
+  padding: 12px 22px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.18s ease;
+}
+.entry-row:hover { background: rgba(237,223,194,0.04); }
+.entry-row.active {
+  background: linear-gradient(90deg, rgba(184,58,28,0.13) 0%, transparent 100%);
+}
+.entry-row.active::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: var(--zhusha); box-shadow: 0 0 14px var(--zhusha-glow); }
+.entry-name { font-size: 16px; letter-spacing: 0.18em; color: var(--paper-dim); }
+.entry-row.active .entry-name { color: var(--paper); font-weight: 700; }
+.entry-tag {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.3em;
+  color: var(--paper-mute);
+  padding: 1px 6px; border: 1px solid var(--line-mid);
+}
+.entry-row.unread { color: var(--paper); }
+.entry-row.unread .entry-name::after {
+  content: "新";
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  font-family: var(--font-kai); font-size: 9px; letter-spacing: 0.2em;
+  color: var(--paper);
+  background: var(--zhusha);
+  vertical-align: middle;
+}
+
+.scroll-pane {
+  padding: 38px 5vw;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse 60% 80% at 30% 20%, rgba(184,58,28,0.04), transparent 70%),
+    linear-gradient(180deg, rgba(20,17,13,0.6), rgba(10,9,7,0.85));
+}
+.scroll-head {
+  display: flex; align-items: baseline; gap: 24px;
+  padding-bottom: 18px; margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.scroll-title { font-size: 32px; letter-spacing: 0.22em; font-weight:700; }
+.scroll-cat { font-family: var(--font-mono); font-size: 12px; color: var(--paper-mute);
+  letter-spacing: 0.2em; margin-left: auto; }
+
+.scroll-body {
+  font-family: var(--font-kai);
+  font-size: 16px; line-height: 1.95;
+  letter-spacing: 0.06em;
+  color: var(--paper-2);
+}
+.scroll-body p + p { margin-top: 14px; }
+.scroll-body em {
+  font-style: normal;
+  color: var(--zhusha-bright);
+  border-bottom: 1px dashed var(--zhusha);
+}
+
+.scroll-meta {
+  margin-top: 26px; padding: 16px 22px;
+  background: rgba(0,0,0,0.4);
+  border-left: 3px solid var(--zhusha);
+}
+.scroll-meta h4 { font-family: var(--font-kai); font-size: 13px; letter-spacing: 0.3em;
+  color: var(--paper-2); margin: 0 0 8px 0; font-weight: 500; }
+.scroll-meta-row {
+  font-family: var(--font-mono); font-size: 12px;
+  display: flex; justify-content: space-between; padding: 4px 0;
+  color: var(--paper-dim); letter-spacing: 0.06em;
+}
+.scroll-meta-row .v { color: var(--paper); }
+
+@media (max-height: 720px) {
+  .header { height: 84px; } .body { top: 84px; bottom: 60px; grid-template-columns: 200px 240px 1fr; }
+  .footer-bar { height: 60px; } .seal.corner-seal-2 { top: 22px; width: 44px; height: 44px; font-size: 26px; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRCodex = {
+  state: {
+    activeCatId: "people",
+    activeEntryId: "han_xingke",
+    cats: [
+      { id: "people",  num: "壹", name: "人物" },
+      { id: "places",  num: "貳", name: "地名" },
+      { id: "items",   num: "參", name: "器物" },
+      { id: "lore",    num: "肆", name: "典故" },
+      { id: "factions",num: "伍", name: "宗派" }
+    ],
+    entries: {
+      people: [
+        { id: "han_xingke", name: "風行客",   tag: "主角",   unread: false,
+          title: "風行客", cat: "人物 · 主角",
+          paragraphs: [
+            "原名不可考，自漠北归来后改字「行客」。<em>性沉默，重情</em>，少时与灵儿之母为邻。",
+            "经雪行三日，归故里时，已不见旧人。"
+          ],
+          meta: [["登场","第一幕"],["佩刀","环首汉刀"],["旧职","边镇兵卒"]] },
+        { id: "lin_er",     name: "灵儿",      tag: "幼亲",   unread: true,
+          title: "灵儿", cat: "人物 · 故乡",
+          paragraphs: ["山村南口井边的稚女。<em>不记得母亲走那年</em>，只记得「井里的鱼会游到天上去」。"],
+          meta: [["登场","第三幕"],["年纪","七 余"],["关系","表妹"]] },
+        { id: "xian_sheng", name: "先生",      tag: "故人",   unread: false,
+          title: "先生", cat: "人物 · 故乡",
+          paragraphs: ["山村中独居一老，<em>话少而知人</em>。火堆从不熄，茶常温。"],
+          meta: [["登场","第三幕"],["居所","南口火堆旁"]] }
+      ],
+      places: [
+        { id: "han_village", name: "山村",     tag: "故乡",   unread: false,
+          title: "山村南口", cat: "地名 · 第三幕",
+          paragraphs: ["三幕主舞台。<em>井边湿石</em>、火堆、旧屋三景共存。雨初停时最为静谧。"],
+          meta: [["所属","汉之南境"],["居民","二十余户"]] },
+        { id: "juyan_pass",  name: "居延关",   tag: "边关",   unread: false,
+          title: "居延关", cat: "地名 · 第一幕",
+          paragraphs: ["汉之北门。<em>雪夜出关，少有归人</em>。守军三班，关吏一人。"],
+          meta: [["所属","汉北"],["特产","茯苓"]] }
+      ],
+      items: [
+        { id: "han_dao",   name: "环首汉刀",   tag: "兵器 · 上品", unread: false,
+          title: "环首汉刀", cat: "器物 · 兵器",
+          paragraphs: ["汉之直刃。<em>朴素如山，沉稳如根</em>。环首一圆，绳穗一束，可挂于腰。"],
+          meta: [["产地","并州"],["重量","二斤四两"],["匠人","失名"]] },
+        { id: "qing_yu",   name: "青玉玦",     tag: "饰物",  unread: true,
+          title: "青玉玦", cat: "器物 · 佩饰",
+          paragraphs: ["母亲遗物。<em>玉色青而有纹</em>，旧裂处以红丝缝合，意「不离」。"],
+          meta: [["来历","母亲"],["价值","不可估"]] }
+      ],
+      lore: [
+        { id: "rtt_origin", name: "RTT 之始",  tag: "系统",  unread: true,
+          title: "RTT · 实时战术之始", cat: "典故 · 系统",
+          paragraphs: ["「RTT」者，<em>近敌而不接战</em>之术也。源于汉边骑兵之斥候法，今为本作潜行系统之名。"],
+          meta: [["首演","影崖敌寨"]] }
+      ],
+      factions: [
+        { id: "border_guard", name: "汉边骑",  tag: "正",     unread: false,
+          title: "汉边骑", cat: "宗派 · 官",
+          paragraphs: ["北境守军。<em>朴正而苦寒</em>，以斥候法著称。"],
+          meta: [["旗号","赤"],["所属","汉北都尉"]] }
+      ]
+    }
+  },
+
+  setCat(id) {
+    if (!this.state.entries[id]) return;
+    this.state.activeCatId = id;
+    const first = this.state.entries[id][0];
+    if (first) this.state.activeEntryId = first.id;
+    this.render();
+  },
+  setEntry(id) {
+    const list = this.state.entries[this.state.activeCatId];
+    const e = list && list.find(x => x.id === id);
+    if (!e) return;
+    this.state.activeEntryId = id;
+    e.unread = false; // mark read on selection
+    this.renderEntries();
+    this.renderScroll();
+    SRBridge.send("codex-read", { entryId: id });
+  },
+  cycleCat(delta) {
+    const cats = this.state.cats;
+    const idx = cats.findIndex(c => c.id === this.state.activeCatId);
+    this.setCat(cats[(idx + delta + cats.length) % cats.length].id);
+  },
+  cycleEntry(delta) {
+    const list = this.state.entries[this.state.activeCatId];
+    if (!list) return;
+    const idx = list.findIndex(e => e.id === this.state.activeEntryId);
+    this.setEntry(list[(idx + delta + list.length) % list.length].id);
+  },
+  back() { SRBridge.back("startup-web-codex"); },
+
+  renderCats() {
+    const wrap = document.querySelector(".cats");
+    wrap.innerHTML = "";
+    this.state.cats.forEach(c => {
+      const node = document.createElement("div");
+      node.className = "cat" + (c.id === this.state.activeCatId ? " active" : "");
+      node.innerHTML = `<div class="cat-num">${c.num}</div><div class="cat-name">${c.name}</div>`;
+      node.addEventListener("click", () => this.setCat(c.id));
+      wrap.appendChild(node);
+    });
+  },
+  renderEntries() {
+    const wrap = document.querySelector(".entries");
+    wrap.innerHTML = "";
+    const list = this.state.entries[this.state.activeCatId] || [];
+    list.forEach(e => {
+      const node = document.createElement("div");
+      const cls = ["entry-row"];
+      if (e.id === this.state.activeEntryId) cls.push("active");
+      if (e.unread) cls.push("unread");
+      node.className = cls.join(" ");
+      node.innerHTML = `<div class="entry-name">${e.name}</div><div class="entry-tag">${e.tag || ""}</div>`;
+      node.addEventListener("click", () => this.setEntry(e.id));
+      wrap.appendChild(node);
+    });
+  },
+  renderScroll() {
+    const list = this.state.entries[this.state.activeCatId] || [];
+    const e = list.find(x => x.id === this.state.activeEntryId) || list[0];
+    const wrap = document.querySelector(".scroll-pane");
+    if (!e) { wrap.innerHTML = ""; return; }
+    const paragraphs = (e.paragraphs || []).map(p => `<p>${p}</p>`).join("");
+    const meta = (e.meta || []).map(m => `<div class="scroll-meta-row"><span>${m[0]}</span><span class="v">${m[1]}</span></div>`).join("");
+    wrap.innerHTML = `
+      <div class="scroll-head">
+        <div class="scroll-title">${e.title}</div>
+        <div class="scroll-cat">${e.cat || ""}</div>
+      </div>
+      <div class="scroll-body">${paragraphs}</div>
+      ${meta ? `<div class="scroll-meta"><h4>诸数</h4>${meta}</div>` : ""}`;
+    document.querySelector(".bc-path .cur").textContent = e.title || e.name;
+  },
+  render() { this.renderCats(); this.renderEntries(); this.renderScroll(); }
+};
+
+ue.interface.setCodexData = function(data) {
+  if (data && data.entries) window.SRCodex.state.entries = data.entries;
+  if (data && data.cats)    window.SRCodex.state.cats    = data.cats;
+  window.SRCodex.render();
+};
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRCodex.back(); }
+  else if (e.key === "Tab")                          { e.preventDefault(); SRCodex.cycleCat(e.shiftKey ? -1 : 1); }
+  else if (e.key === "ArrowUp"   || e.key === "w" || e.key === "W") { e.preventDefault(); SRCodex.cycleEntry(-1); }
+  else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); SRCodex.cycleEntry(1); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRCodex.render();
+  SRBridge.ready("startup-web-codex");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="header">
+    <div class="bc-kanji">典故</div>
+    <div class="bc-path"><span>主页</span><span class="sep">·</span><span>典故</span><span class="sep">·</span><span class="cur"></span></div>
+  </div>
+  <div class="seal corner-seal-2">典</div>
+
+  <div class="body">
+    <div class="cats"></div>
+    <div class="entries"></div>
+    <div class="scroll-pane"></div>
+  </div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta">典故 · DEV 预览 · 二〇二六</div>
+    <div class="prompts">
+      <div class="prompt"><span class="key square">□</span>切换分类</div>
+      <div class="prompt"><span class="key cross">✕</span>展卷</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+    </div>
+  </footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "feature": "Startup.WebLogin",
+  "screen_type": "webui_single_player_title_screen",
+  "source_of_truth": [
+    "Obisdian/02_游戏设计/05_UIUX/UI设计稿v2/10_标题画面.md",
+    "Obisdian/02_游戏设计/05_UIUX/UI设计稿v2/mockups/screens/01-login.html",
+    "D:/BaiduNetdiskDownload/Web UI/5.7WebUI/文档/WebUI.pdf"
+  ],
+  "runtime": {
+    "module": "SlientResolveLogic",
+    "screen_class": "/Script/SlientResolveLogic.SlientResolveStartupWebUIScreenWidget",
+    "webui_plugin": "WebUI",
+    "web_content_path": "CoreLogic/UI/Startup/WebLogin/index.html"
+  },
+  "ui_assets": [
+    "/Game/CoreLogic/UI/Startup/WebLogin/WBP_StartupWebLoginScreen"
+  ],
+  "packaging": {
+    "directories_to_stage_as_ufs": [
+      "CoreLogic/UI/Startup/WebLogin",
+      "CoreLogic/UI/Startup/WebLogin_Ink"
+    ]
+  },
+  "visual_contract": {
+    "palette": ["#0A0907", "#EDDFC2", "#B83A1C"],
+    "must_not_look_like": ["account login", "server list", "MMO lobby", "bright gold wuxia lobby"]
+  }
+}
+

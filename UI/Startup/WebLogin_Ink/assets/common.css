@@ -1,0 +1,694 @@
+@font-face {
+  font-family: KaiBrush;
+  src: url("../ZhongQiMaShanZhengBrushKai.ttf") format("truetype");
+  font-display: swap;
+}
+
+/* === Theme: Ink · 冷白宣纸水墨 ============================================
+ * 严格参考用户给出的“剑来”水墨图：冷白宣纸、雪雾颗粒、黑墨主笔、
+ * 远处飞鸟、底部淡墨山水/亭角、少量印章点睛。所有页面共享这组 token，
+ * 页面局部可以变化布局，但不能回到暖木、虎符、霓虹或三分支模板语义。
+ * ========================================================================== */
+:root {
+  --ink-0: #080A0B;
+  --ink-1: #161B1F;
+  --ink-2: #2A3238;
+  --ink-black: #050607;
+  --ink-wash: rgba(37, 45, 52, 0.26);
+  --paper-bg: #E8EEF6;
+  --paper: #F8FBFF;
+  --paper-2: #ECF2F8;
+  --paper-dim: #CBD5DF;
+  --paper-mute: #7E8D9A;
+  --line: rgba(35, 43, 50, 0.12);
+  --line-mid: rgba(35, 43, 50, 0.24);
+  --zhusha: #8A2E28;
+  --zhusha-bright: #A8483F;
+  --zhusha-deep: #5B1E1A;
+  --zhusha-glow: rgba(138, 46, 40, 0.24);
+  --gold: #9AA8B4;
+  --bamboo-green: #6C7C85;
+  --bamboo-light: #AAB7C1;
+  --seal-stamp: #7C2A24;
+  --font-kai: KaiBrush, STKaiti, KaiTi, "楷体", "Songti SC", serif;
+  --font-mono: "JetBrains Mono", Consolas, monospace;
+  --sr-shell-width: clamp(860px, 62vw, 1280px);
+  --sr-shell-left: clamp(24px, 2.8vw, 54px);
+  --sr-shell-top: clamp(10px, 1.5vh, 18px);
+  --sr-shell-clearance: 0px;
+}
+
+/* Default stage backdrop for non-deeply-themed pages — cold rice paper, snow
+ * particles and faint ink-wash mountains. Deeply-themed pages (boot/index) may
+ * override this but should keep the same large quiet negative space grammar. */
+.stage {
+  background:
+    radial-gradient(ellipse 48vw 34vh at 26% 18%, rgba(255,255,255,0.70), transparent 72%),
+    radial-gradient(ellipse 40vw 30vh at 82% 82%, rgba(196,211,224,0.26), transparent 70%),
+    radial-gradient(ellipse 90vw 62vh at 50% 52%, rgba(91,107,119,0.18), transparent 75%),
+    linear-gradient(130deg, rgba(255,255,255,0.28), transparent 38%, rgba(160,176,190,0.14) 100%),
+    repeating-linear-gradient(0deg,
+      rgba(45, 54, 62, 0.018) 0px,
+      rgba(45, 54, 62, 0.018) 1px,
+      transparent 1px,
+      transparent 9px),
+    linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 44%, #DDE6EF 100%);
+}
+
+* { box-sizing: border-box; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216, 85, 40, 0.52) rgba(10, 9, 7, 0.22);
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(10, 9, 7, 0.22);
+  border-left: 1px solid rgba(237, 223, 194, 0.06);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(216, 85, 40, 0.76), rgba(138, 40, 16, 0.78));
+  border: 1px solid rgba(237, 223, 194, 0.22);
+  box-shadow: 0 0 10px rgba(216, 85, 40, 0.26);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(237, 223, 194, 0.62), rgba(184, 58, 28, 0.82));
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html, body {
+  width: 100%; height: 100%; margin: 0; overflow: hidden;
+  background: var(--paper-bg); color: var(--ink-1);
+  cursor: default; user-select: none;
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--font-kai);
+}
+
+/* === Accessibility theme overrides ============================================== */
+
+/* Colour-vision: shift the朱砂 / gold pair to colour pairs each kind of CVD can read.
+ * 红绿 (deuteranopia / protanopia): swap朱砂 from red to deep blue, gold to pure yellow.
+ * 蓝黄 (tritanopia): keep red, swap gold to magenta.
+ * 全色盲 (achromatopsia): collapse to monochrome paper-on-ink. */
+body[data-colorblind="rg"] {
+  --zhusha: #2A6BD0;          --zhusha-bright: #5DA4FF;
+  --zhusha-deep: #1A4480;      --zhusha-glow: rgba(93, 164, 255, 0.55);
+  --gold: #F5D24E;             --gold-2: #E0BB36;
+}
+body[data-colorblind="by"] {
+  --gold: #C25CB1;             --gold-2: #8E408A;
+}
+body[data-colorblind="all"] {
+  --zhusha: #C8B997;           --zhusha-bright: #EDDFC2;
+  --zhusha-deep: #806E50;      --zhusha-glow: rgba(237, 223, 194, 0.55);
+  --gold: #C8B997;             --gold-2: #806E50;
+}
+
+/* High-contrast: bump base text + line opacity so weak-vision users can parse. */
+body[data-contrast="high"] {
+  --paper: #FFF7E2;
+  --paper-2: #F0E4C9;
+  --paper-dim: #D8C9A2;
+  --paper-mute: #B0A079;
+  --line: rgba(255, 247, 226, 0.18);
+  --line-mid: rgba(255, 247, 226, 0.36);
+}
+body[data-contrast="high"] .menu-item,
+body[data-contrast="high"] .seg-item,
+body[data-contrast="high"] .cat,
+body[data-contrast="high"] .tab,
+body[data-contrast="high"] .school,
+body[data-contrast="high"] .skill-row,
+body[data-contrast="high"] .entry,
+body[data-contrast="high"] .card {
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.85);
+}
+
+/* Big-text: scale base font ~+15% via root font-size; downstream rem/clamp adapts. */
+body[data-bigtext="on"]   { font-size: 17px; }
+body[data-bigtext="on"] .footer-meta,
+body[data-bigtext="on"] .prompt,
+body[data-bigtext="on"] .card-desc,
+body[data-bigtext="on"] .row-desc,
+body[data-bigtext="on"] .skill-desc {
+  font-size: 14px;
+}
+
+.stage {
+  position: relative; width: 100vw; height: 100vh;
+  min-width: 960px; min-height: 540px;
+  overflow: hidden;
+  /* Ink 主题白底切页累计感更明显，180ms 比默认楷墨 380ms 更适合 sub-tab 频繁切换。
+   * 配合 sr-navigating mask 也用 --paper-bg 同色，整段切换视觉上是"轻微淡入"而非"闪"。 */
+  animation: stage-fade-in 180ms ease-out both;
+}
+
+@keyframes stage-fade-in {
+  0%   { opacity: 0; transform: translate3d(0, 4px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0,    0); }
+}
+
+.stage.fade-out {
+  animation: stage-fade-out 120ms ease-in both;
+}
+
+@keyframes stage-fade-out {
+  0%   { opacity: 1; transform: translate3d(0, 0,    0); }
+  100% { opacity: 0; transform: translate3d(0, -6px, 0); }
+}
+
+.stage.sr-page-enter-next {
+  animation: sr-page-enter-next 300ms cubic-bezier(0.2, 0.78, 0.16, 1) both;
+}
+
+.stage.sr-page-enter-prev {
+  animation: sr-page-enter-prev 300ms cubic-bezier(0.2, 0.78, 0.16, 1) both;
+}
+
+.stage.sr-page-entry-complete {
+  animation: none;
+}
+
+@keyframes sr-page-enter-next {
+  0% {
+    opacity: 0;
+    transform: translate3d(56px, 0, 0);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+@keyframes sr-page-enter-prev {
+  0% {
+    opacity: 0;
+    transform: translate3d(-56px, 0, 0);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+/* Page-bg-colored scrim painted on body during navigation — hides CEF reload flash.
+ * Ink 主题白底，必须用宣纸色而非 ink-0 黑，否则切页瞬间黑→白反差形成强烈闪烁。
+ * 用 --paper-bg 匹配主题底色，CEF reload 那一帧视觉上等同主题底，无感知闪。 */
+body.sr-navigating::after {
+  content: "";
+  position: fixed; inset: 0;
+  background: var(--paper-bg);
+  z-index: 99999;
+  pointer-events: none;
+  animation: sr-nav-fade 120ms ease-in forwards;
+}
+@keyframes sr-nav-fade {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.seal {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--paper);
+  background: var(--zhusha);
+  box-shadow: 0 0 0 2px rgba(184, 58, 28, 0.4), 2px 4px 8px rgba(0, 0, 0, 0.5);
+  font-weight: 900;
+}
+.seal::before {
+  content: ""; position: absolute; inset: 3px;
+  border: 1.5px solid rgba(237, 223, 194, 0.25);
+}
+
+.footer-bar {
+  position: absolute; right: 0; bottom: 0; left: 0;
+  z-index: 50; height: 72px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 5vw;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.7));
+  /* Footer is purely visual prompts; never intercept clicks otherwise the menu underneath
+   * (when the menu list is tall enough to overlap) becomes silently un-clickable. */
+  pointer-events: none;
+}
+.footer-bar > * { pointer-events: auto; }
+.footer-meta {
+  font-family: var(--font-mono);
+  color: var(--paper-mute);
+  font-size: 11px; letter-spacing: 0.2em;
+}
+.prompts {
+  display: flex; align-items: center; gap: 26px;
+}
+.prompt {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--paper-dim);
+  font-size: 14px; letter-spacing: 0.18em;
+}
+.key {
+  width: 28px; height: 28px;
+  border: 1.5px solid;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  font-family: Arial, sans-serif;
+  font-size: 13px; font-weight: 700;
+}
+.key.cross    { color: #7FBFFF; border-color: #7FBFFF; }
+.key.circle   { color: #F26C6C; border-color: #F26C6C; }
+.key.triangle { color: #5AD9B8; border-color: #5AD9B8; }
+.key.square   { color: #C7A0F0; border-color: #C7A0F0; border-radius: 4px; }
+
+.sr-page-shell {
+  position: absolute;
+  top: var(--sr-shell-top);
+  left: var(--sr-shell-left);
+  z-index: 70;
+  width: var(--sr-shell-width);
+  min-height: 50px;
+  padding: 8px 13px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    linear-gradient(180deg, rgba(6,8,10,0.94), rgba(14,18,21,0.86)),
+    radial-gradient(circle at 0% 50%, rgba(255,255,255,0.07), transparent 56%);
+  box-shadow:
+    0 10px 34px rgba(0,0,0,0.18),
+    inset 0 0 0 1px rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px) saturate(1.02);
+  pointer-events: auto;
+}
+
+.sr-page-shell::before {
+  content: "";
+  position: absolute;
+  inset: auto 10px 5px 10px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.12), transparent 72%);
+  opacity: 0.42;
+}
+
+.sr-page-shell__row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.sr-page-shell__button {
+  flex: 0 0 auto;
+  min-width: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(248,251,255,0.92);
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.sr-page-shell__button:hover,
+.sr-page-shell__button:focus-visible {
+  transform: translateY(-1px);
+  opacity: 1;
+  outline: none;
+}
+
+.sr-page-shell__button:active {
+  transform: translateY(0);
+}
+
+.sr-page-shell__button.is-next {
+  margin-left: 2px;
+}
+
+.sr-page-shell__key {
+  min-width: 38px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.9);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  border-radius: 999px;
+}
+
+.sr-page-shell__button.is-next .sr-page-shell__key {
+  order: 2;
+}
+
+.sr-page-shell__tabs {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sr-page-shell__tab {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 7px 16px 9px;
+  border: 0;
+  background: transparent;
+  color: rgba(239,244,248,0.7);
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    opacity 0.16s ease;
+  white-space: nowrap;
+}
+
+.sr-page-shell__tab:hover,
+.sr-page-shell__tab:focus-visible {
+  color: rgba(255,255,255,0.92);
+  outline: none;
+}
+
+.sr-page-shell__tab::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 1px;
+  height: 12px;
+  background: rgba(255,255,255,0.18);
+  transform: translateY(-50%);
+}
+
+.sr-page-shell__tab:first-child::before {
+  display: none;
+}
+
+.sr-page-shell__tab.is-active {
+  color: rgba(7,9,10,0.98);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(224,231,238,0.86)),
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.9), transparent 78%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.14),
+    0 5px 18px rgba(255,255,255,0.22);
+}
+
+.sr-page-shell__tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -2px;
+  height: 2px;
+  background: rgba(255,255,255,0.78);
+}
+
+html[data-sr-page="inventory"] body.sr-page-shell-active .topbar .tk-key,
+html[data-sr-page="inventory"] body.sr-page-shell-active .topbar .tabs-row {
+  display: none !important;
+}
+
+html[data-sr-page="inventory"] body.sr-page-shell-active .topbar {
+  justify-content: flex-end !important;
+}
+
+@media (max-width: 1280px) {
+  :root {
+    --sr-shell-width: clamp(700px, 72vw, 1040px);
+  }
+
+  .sr-page-shell__tab {
+    padding-left: 12px;
+    padding-right: 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 980px), (max-height: 720px) {
+  :root {
+    --sr-shell-width: clamp(520px, 74vw, 860px);
+  }
+
+  .sr-page-shell {
+    padding: 4px 8px;
+  }
+
+  .sr-page-shell__key {
+    min-width: 28px;
+    height: 17px;
+    font-size: 8px;
+  }
+
+  .sr-page-shell__tab {
+    padding: 4px 8px 5px;
+    font-size: 11px;
+  }
+}
+
+.vignette {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 75% 65% at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.78) 100%);
+}
+
+.grain {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  opacity: 0.10;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0.9  0 0 0 0 0.85  0 0 0 0 0.7  0 0 0 0.4 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Generic click-press feedback — applies anywhere it makes sense. */
+button,
+.menu-item,
+.cat,
+.school,
+.skill-row,
+.entry,
+.tab,
+.cell,
+.seg-item,
+.choice,
+.toggle,
+.action-btn {
+  -webkit-tap-highlight-color: transparent;
+}
+button:active,
+.menu-item:active,
+.cat:active,
+.school:active,
+.skill-row:active,
+.entry:active,
+.tab:active,
+.cell:active,
+.seg-item:active,
+.choice:active,
+.toggle:active,
+.action-btn:active {
+  transform: translateY(1px) scale(0.998);
+}
+
+/* === Ink strict reference guard ============================================
+ * 兜底覆盖旧页面里残留的暖木/虎符/羊皮局部 CSS。页面仍可保留自身布局，
+ * 但视觉必须回到参考图：冷白宣纸、淡墨线、黑字、少量朱印。
+ * combat 是透明 HUD，不能被全屏纸底覆盖。
+ * ========================================================================== */
+html[data-sr-page]:not([data-sr-page="combat"]) .stage {
+  background:
+    radial-gradient(ellipse 42vw 30vh at 50% 24%, rgba(255,255,255,.72), transparent 72%),
+    radial-gradient(ellipse 48vw 36vh at 52% 56%, rgba(213,225,237,.38), transparent 78%),
+    radial-gradient(ellipse 22vw 18vh at 10% 94%, rgba(115,132,145,.26), transparent 72%),
+    radial-gradient(ellipse 26vw 20vh at 84% 91%, rgba(190,202,214,.22), transparent 74%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='41'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+    linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 46%, #DDE6EF 100%) !important;
+  color: var(--ink-1) !important;
+}
+
+html[data-sr-page="combat"] .stage {
+  background: transparent !important;
+}
+
+html[data-sr-page] .header,
+html[data-sr-page] .panel,
+html[data-sr-page] .card,
+html[data-sr-page] .slot,
+html[data-sr-page] .entry,
+html[data-sr-page] .row,
+html[data-sr-page] .content,
+html[data-sr-page] .sidebar,
+html[data-sr-page] .scroll-pane,
+html[data-sr-page] .map-canvas,
+html[data-sr-page] .dialogue-card,
+html[data-sr-page] .choice,
+html[data-sr-page] .tab,
+html[data-sr-page] .school,
+html[data-sr-page] .skill-row,
+html[data-sr-page] .modal,
+html[data-sr-page] .action-btn,
+html[data-sr-page] .seg-item,
+html[data-sr-page] .toggle,
+html[data-sr-page] .profile-card,
+html[data-sr-page] .portrait,
+html[data-sr-page] .codex-card,
+html[data-sr-page] .lobby-card {
+  background: rgba(248, 251, 255, 0.34) !important;
+  border-color: rgba(38, 45, 51, 0.14) !important;
+  color: rgba(14, 18, 21, 0.78) !important;
+  box-shadow:
+    0 18px 52px rgba(96, 115, 132, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.30) !important;
+}
+
+html[data-sr-page] .active,
+html[data-sr-page] .selected,
+html[data-sr-page] .current,
+html[data-sr-page] .menu-item.active,
+html[data-sr-page] .seg-item.active,
+html[data-sr-page] .tab.active,
+html[data-sr-page] .entry.active,
+html[data-sr-page] .slot.active,
+html[data-sr-page] .skill-row.active {
+  background: rgba(255, 255, 255, 0.56) !important;
+  border-color: rgba(5, 6, 7, 0.32) !important;
+  color: rgba(0, 0, 0, 0.90) !important;
+  box-shadow:
+    0 20px 54px rgba(66, 82, 96, 0.16),
+    inset 0 -2px 0 rgba(5, 6, 7, 0.38) !important;
+}
+
+html[data-sr-page] .title,
+html[data-sr-page] .title-main,
+html[data-sr-page] .page-title,
+html[data-sr-page] .section-title,
+html[data-sr-page] .row-title,
+html[data-sr-page] .card-title,
+html[data-sr-page] .name,
+html[data-sr-page] h1,
+html[data-sr-page] h2 {
+  color: rgba(5, 6, 7, 0.88) !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.24), 0 14px 28px rgba(83, 98, 110, 0.14) !important;
+}
+
+html[data-sr-page] .desc,
+html[data-sr-page] .hint,
+html[data-sr-page] .row-desc,
+html[data-sr-page] .card-desc,
+html[data-sr-page] small,
+html[data-sr-page] .footer-meta,
+html[data-sr-page] .prompt {
+  color: rgba(57, 68, 78, 0.58) !important;
+}
+
+html[data-sr-page] .seal,
+html[data-sr-page] .stamp,
+html[data-sr-page] .tag,
+html[data-sr-page] .save-tag {
+  background: rgba(235, 240, 246, 0.42) !important;
+  border-color: rgba(42, 48, 52, 0.38) !important;
+  color: rgba(22, 27, 31, 0.72) !important;
+  box-shadow: 0 8px 18px rgba(66, 78, 88, 0.15), inset 0 0 0 2px rgba(255,255,255,0.28) !important;
+}
+
+html[data-sr-page] .footer-bar {
+  background: linear-gradient(180deg, transparent, rgba(223, 232, 241, 0.46)) !important;
+  border-top-color: rgba(38, 45, 51, 0.10) !important;
+}
+
+
+/* =========================================================================
+   黑泽明胶片层（Kurosawa film overlay）
+   只在 Ink 模板生效——切回 Default 模板时这份 CSS 整体不被加载，自然下线。
+   两层伪元素：
+     ::before 是噪点 + 24fps 闪烁，覆盖整屏，不挡点击
+     ::after  是极轻的暗角，把 ink 模板的"宣纸亮"压一点点，更像胶片
+   配合 3D 视口的 PostProcessVolume + M_KurosawaPP（C++ 在切到 Ink 时打开）
+   ========================================================================= */
+
+html[data-sr-page]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  pointer-events: none;
+  /* 内嵌 SVG turbulence 当噪点纹（无外部请求）。
+     baseFrequency 越高颗粒越细；numOctaves 越高层次越多。
+     opacity 在 SVG 内层和 ::before 的 opacity 双重控制亮度。 */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.52  0 0 0 0 0.45  0 0 0 1.4 -0.4'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 320px 320px;
+  mix-blend-mode: multiply;
+  opacity: 0.22;
+  /* 24fps 抖动：每帧 ~41.6ms，用 steps() 离散化 */
+  animation: kurosawa-flicker 0.0833s steps(2, end) infinite,
+             kurosawa-grain-shift 0.7s steps(6, end) infinite;
+}
+
+/* 暗角 + 胶片暖偏，叠在最顶层 */
+html[data-sr-page]::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  /* 径向渐变做暗角 */
+  background:
+    radial-gradient(ellipse at center,
+                    rgba(30, 22, 14, 0) 50%,
+                    rgba(30, 22, 14, 0.32) 100%),
+    /* 极轻奶油暖偏，让宣纸更"老胶片"一点 */
+    linear-gradient(0deg, rgba(112, 92, 60, 0.06), rgba(112, 92, 60, 0.06));
+  mix-blend-mode: multiply;
+}
+
+@keyframes kurosawa-flicker {
+  0%, 100% { opacity: 0.22; }
+  50%      { opacity: 0.18; }
+}
+
+@keyframes kurosawa-grain-shift {
+  /* 每"步"挪动一点 background-position，制造颗粒位移幻觉 */
+  0%   { background-position:    0px    0px; }
+  17%  { background-position:  -73px   42px; }
+  34%  { background-position:   31px  -88px; }
+  51%  { background-position: -120px  -19px; }
+  68%  { background-position:   62px   95px; }
+  85%  { background-position:  -44px  -55px; }
+  100% { background-position:    0px    0px; }
+}
+
+/* 可选：用户在某些场景需要关掉胶片（比如截图），加一个 opt-out hook */
+html[data-sr-page][data-kurosawa="off"]::before,
+html[data-sr-page][data-kurosawa="off"]::after {
+  display: none !important;
+}
+
+/* SRNav 当前焦点 marker — Ink 主题用墨黑 outline + 浅墨光晕 */
+[data-srnav-focus] {
+  outline: 2px solid var(--sr-ring, rgba(5, 7, 8, 0.72));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(5, 7, 8, 0.10);
+  transition: outline-color 0.12s ease, box-shadow 0.12s ease;
+}

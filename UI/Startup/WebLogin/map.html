@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 世界图 · WebUI</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+.stage {
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 40%, rgba(201,162,75,0.06), transparent 60%),
+    linear-gradient(180deg, #0E0B07 0%, #14110C 60%, #0A0805 100%);
+}
+
+.header {
+  position: absolute; top: 0; left: 0; right: 0; height: 110px;
+  display: flex; align-items: center; padding: 0 5vw;
+  border-bottom: 1px solid var(--line);
+  z-index: 5;
+}
+.bc-kanji { font-size: clamp(40px, 4.2vw, 60px); font-weight: 900; letter-spacing: 0.2em; }
+.bc-path  { margin-left: auto; display: flex; gap: 14px;
+  font-family: var(--font-mono); font-size: 13px; color: var(--paper-dim); letter-spacing: 0.25em; }
+.bc-path .sep { opacity: 0.4; } .bc-path .cur { color: var(--zhusha-bright); }
+
+.seal.corner-seal-2 {
+  position: absolute; top: 38px; right: 5vw;
+  width: 56px; height: 56px;
+  font-size: 32px; transform: rotate(-3deg); z-index: 5;
+}
+
+.body {
+  position: absolute; top: 110px; left: 0; right: 0; bottom: 72px;
+  display: grid; grid-template-columns: 1fr 380px;
+}
+
+/* Map canvas — abstract aerial view rendered as SVG */
+.map-canvas {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 40% at 32% 38%, rgba(201,162,75,0.05), transparent 70%),
+    radial-gradient(ellipse 50% 50% at 76% 70%, rgba(184,58,28,0.03), transparent 70%);
+}
+.map-canvas svg { width: 100%; height: 100%; display: block; }
+.map-canvas .land   { fill: rgba(40,30,18,0.55); stroke: rgba(237,223,194,0.10); stroke-width: 1; }
+.map-canvas .river  { stroke: rgba(127,191,255,0.30); stroke-width: 2; fill: none; stroke-dasharray: 2 6; }
+.map-canvas .road   { stroke: rgba(237,223,194,0.20); stroke-width: 1.2; fill: none; stroke-dasharray: 4 6; }
+.map-canvas .grid {
+  background-image: linear-gradient(rgba(237,223,194,0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(237,223,194,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  position: absolute; inset: 0; pointer-events: none;
+}
+
+.marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+.marker .pin {
+  width: 16px; height: 16px;
+  background: var(--paper-mute);
+  border: 2px solid var(--ink-0);
+  box-shadow: 0 0 0 1px var(--paper-mute);
+  transform: rotate(45deg);
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.marker.visited .pin { background: var(--paper-2); box-shadow: 0 0 0 1px var(--paper-2); }
+.marker.active  .pin {
+  background: var(--zhusha);
+  box-shadow: 0 0 0 1px var(--zhusha-bright), 0 0 18px var(--zhusha-glow);
+  transform: rotate(45deg) scale(1.15);
+}
+.marker.current .pin {
+  background: var(--gold);
+  box-shadow: 0 0 0 1px var(--paper), 0 0 22px rgba(201,162,75,0.65);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--paper), 0 0 22px rgba(201,162,75,0.55); }
+  50%      { box-shadow: 0 0 0 1px var(--paper), 0 0 32px rgba(201,162,75,0.95); }
+}
+.marker .label {
+  position: absolute; left: 50%; top: 130%;
+  transform: translateX(-50%);
+  font-family: var(--font-kai);
+  font-size: 13px; letter-spacing: 0.22em;
+  color: var(--paper-dim);
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85);
+}
+.marker.active .label,
+.marker.current .label { color: var(--paper); }
+
+/* Side panel — region detail */
+.panel {
+  border-left: 1px solid var(--line);
+  background: rgba(0,0,0,0.36);
+  padding: 32px 32px;
+  overflow-y: auto;
+}
+.panel-title { font-size: 26px; letter-spacing: 0.22em; color: var(--paper); margin-bottom: 4px; }
+.panel-coord { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3em; color: var(--zhusha-bright); }
+.panel-divider {
+  width: 100%; height: 1px; margin: 22px 0;
+  background: linear-gradient(90deg, var(--zhusha), transparent);
+  box-shadow: 0 0 6px var(--zhusha-glow);
+}
+.panel-flavor { font-family: var(--font-kai); font-size: 14px; line-height: 1.85; color: var(--paper-dim); letter-spacing: 0.06em; }
+.panel-section + .panel-section { margin-top: 22px; }
+.panel-section h4 {
+  font-family: var(--font-kai); font-size: 13px; letter-spacing: 0.3em;
+  color: var(--paper-2); margin: 0 0 8px 0; font-weight: 500;
+}
+.panel-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.panel-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.25em;
+  color: var(--paper-2);
+  background: rgba(0,0,0,0.55);
+  border: 1px solid var(--line-mid);
+}
+.panel-stats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px 18px;
+}
+.stat-row { display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.stat-name { font-size: 12px; color: var(--paper-dim); letter-spacing: 0.18em; }
+.stat-val { font-family: var(--font-mono); color: var(--paper); font-size: 12px; }
+
+.panel-actions { display: flex; gap: 12px; margin-top: 30px; }
+.action-btn {
+  padding: 12px 24px;
+  font-family: var(--font-kai); font-size: 14px; letter-spacing: 0.32em;
+  color: var(--paper-2);
+  background: rgba(0,0,0,0.55);
+  border: 1px solid var(--line-mid);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+.action-btn:hover { color: var(--paper); border-color: var(--paper-dim); background: rgba(237,223,194,0.06); }
+.action-btn:active { transform: translateY(1px); }
+.action-btn.primary {
+  border-color: var(--zhusha); color: var(--paper);
+  background: linear-gradient(180deg, rgba(184,58,28,0.5), rgba(138,40,16,0.6));
+  box-shadow: 0 0 14px var(--zhusha-glow);
+}
+.action-btn.primary:hover { background: linear-gradient(180deg, rgba(216,85,40,0.7), rgba(184,58,28,0.7)); }
+.action-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+@media (max-width: 1100px), (max-height: 720px) {
+  .body { grid-template-columns: 1fr 320px; }
+  .header { height: 84px; } .body { top: 84px; bottom: 60px; }
+  .footer-bar { height: 60px; } .seal.corner-seal-2 { top: 22px; width: 44px; height: 44px; font-size: 26px; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRMap = {
+  state: {
+    activeId: "han_village",
+    currentId: "han_village",
+    markers: [
+      { id: "juyan_pass", name: "居延关",     coord: { x: 0.18, y: 0.30 }, visited: true,
+        flavor: "汉之北门。雪夜出关，是众多旅人不归的起点。",
+        tags: ["第一幕", "雪 · 风 · 漠"],
+        stats: [["敌人",  "山贼"], ["特产", "茯苓 · 古铜钱"], ["传送", "已开"], ["余情", "微"]] },
+      { id: "han_road",   name: "漠北古道",   coord: { x: 0.34, y: 0.40 }, visited: true,
+        flavor: "三日大雪，白茫茫的古道上只剩车辙和孤丐。",
+        tags: ["第二幕", "雪行 · 古道"],
+        stats: [["敌人",  "饿狼"], ["特产", "干粮"], ["传送", "已开"]] },
+      { id: "han_village",name: "山村南口",   coord: { x: 0.50, y: 0.55 }, visited: true, current: true,
+        flavor: "灵儿戏水的旧井就在这里。火堆旁的先生从不答话。",
+        tags: ["第三幕", "故乡 · 回忆"],
+        stats: [["敌人",  "无"], ["特产", "麦饼 · 柴米"], ["传送", "当前"], ["居所", "南口旧屋"]] },
+      { id: "fortress",   name: "敌寨 · 影崖", coord: { x: 0.72, y: 0.50 }, visited: false,
+        flavor: "悬崖上的兵寨，飞鸟不至。RTT 系统在此首演。",
+        tags: ["待解锁", "潜行 · 哨"],
+        stats: [["敌人",  "兵 · 哨 · 蛮"], ["特产", "汉刀残片"], ["传送", "未开"]] },
+      { id: "old_capital", name: "旧都 · 长安", coord: { x: 0.86, y: 0.32 }, visited: false,
+        flavor: "故国都城。残碑断瓦，问之者寡。",
+        tags: ["第四幕 · 待"],
+        stats: [["敌人",  "?"], ["特产", "?"], ["传送", "未开"]] }
+    ]
+  },
+
+  setActive(id) {
+    if (!this.state.markers.some(m => m.id === id)) return;
+    this.state.activeId = id;
+    this.renderMarkers();
+    this.renderPanel();
+    this.renderBreadcrumb();
+  },
+  cycle(delta) {
+    const list = this.state.markers;
+    const idx = list.findIndex(m => m.id === this.state.activeId);
+    this.setActive(list[(idx + delta + list.length) % list.length].id);
+  },
+  fastTravel() {
+    const m = this.state.markers.find(x => x.id === this.state.activeId);
+    if (!m || !m.visited) {
+      SRBridge.toast("此地未访 · 不能传送", { tone: "warn", title: "传送", ttl: 1800 });
+      return;
+    }
+    if (m.id === this.state.currentId) {
+      SRBridge.toast("正立此地 · 无须传送", { tone: "default", title: "传送", ttl: 1500 });
+      return;
+    }
+    SRBridge.send("map-travel", { markerId: m.id, name: m.name });
+    SRBridge.toast(`传送：${m.name}`, { tone: "quest", title: "传送", ttl: 2200 });
+    this.state.currentId = m.id;
+    this.renderMarkers();
+  },
+  back() { SRBridge.back("startup-web-map"); },
+
+  renderMarkers() {
+    const layer = document.querySelector(".map-canvas .markers");
+    if (!layer) return;
+    layer.innerHTML = "";
+    this.state.markers.forEach(m => {
+      const node = document.createElement("div");
+      const cls = ["marker"];
+      if (m.visited) cls.push("visited");
+      if (m.id === this.state.activeId) cls.push("active");
+      if (m.id === this.state.currentId) cls.push("current");
+      node.className = cls.join(" ");
+      node.style.left = (m.coord.x * 100) + "%";
+      node.style.top  = (m.coord.y * 100) + "%";
+      node.innerHTML = `<div class="pin"></div><div class="label">${m.name}</div>`;
+      node.addEventListener("click", () => this.setActive(m.id));
+      layer.appendChild(node);
+    });
+  },
+  renderPanel() {
+    const m = this.state.markers.find(x => x.id === this.state.activeId);
+    if (!m) return;
+    const wrap = document.querySelector(".panel");
+    const tagsHtml  = (m.tags  || []).map(t => `<div class="panel-tag">${t}</div>`).join("");
+    const statsHtml = (m.stats || []).map(s => `<div class="stat-row"><span class="stat-name">${s[0]}</span><span class="stat-val">${s[1]}</span></div>`).join("");
+    const isVisited = !!m.visited;
+    const isCurrent = m.id === this.state.currentId;
+    wrap.innerHTML = `
+      <div class="panel-title">${m.name}</div>
+      <div class="panel-coord">${(m.coord.x*100).toFixed(0)} · ${(m.coord.y*100).toFixed(0)} ${isCurrent ? "· 当前" : (isVisited ? "· 已访" : "· 未访")}</div>
+      <div class="panel-divider"></div>
+      <div class="panel-flavor">${m.flavor || ""}</div>
+      <div class="panel-section">
+        <h4>记号</h4>
+        <div class="panel-tags">${tagsHtml}</div>
+      </div>
+      <div class="panel-section">
+        <h4>诸数</h4>
+        <div class="panel-stats">${statsHtml}</div>
+      </div>
+      <div class="panel-actions">
+        <button class="action-btn primary" type="button" onclick="window.SRMap.fastTravel()" ${isVisited ? "" : "disabled"}>${isCurrent ? "驻 留" : "传 送"}</button>
+        <button class="action-btn" type="button" onclick="window.SRMap.back()">返 回</button>
+      </div>`;
+  },
+  renderBreadcrumb() {
+    const m = this.state.markers.find(x => x.id === this.state.activeId);
+    document.querySelector(".bc-path .cur").textContent = m ? m.name : "";
+  },
+  render() { this.renderMarkers(); this.renderPanel(); this.renderBreadcrumb(); }
+};
+
+ue.interface.setMapData = function(data) {
+  if (data && Array.isArray(data.markers)) window.SRMap.state.markers = data.markers;
+  if (data && data.activeId)  window.SRMap.state.activeId  = data.activeId;
+  if (data && data.currentId) window.SRMap.state.currentId = data.currentId;
+  window.SRMap.render();
+};
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRMap.back(); }
+  else if (e.key === "Enter" || e.key === " ")     { e.preventDefault(); SRMap.fastTravel(); }
+  else if (e.key === "ArrowUp"   || e.key === "w" || e.key === "W") { e.preventDefault(); SRMap.cycle(-1); }
+  else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); SRMap.cycle(1); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRMap.render();
+  SRBridge.ready("startup-web-map");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="header">
+    <div class="bc-kanji">世界圖</div>
+    <div class="bc-path"><span>主页</span><span class="sep">·</span><span>世界图</span><span class="sep">·</span><span class="cur"></span></div>
+  </div>
+  <div class="seal corner-seal-2">圖</div>
+
+  <div class="body">
+    <div class="map-canvas">
+      <div class="grid"></div>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <!-- coarse landmasses -->
+        <path class="land" d="M2,28 Q14,22 26,30 Q34,26 44,32 Q56,30 66,38 Q78,36 92,30 L96,42 Q86,52 70,58 Q56,64 42,60 Q28,66 14,58 Q6,52 2,40 Z"/>
+        <path class="land" d="M30,68 Q42,64 56,70 Q70,68 84,76 L88,86 Q72,90 56,86 Q42,90 28,84 Z"/>
+        <!-- river -->
+        <path class="river" d="M14,36 Q34,42 56,52 Q72,58 90,52"/>
+        <!-- roads -->
+        <path class="road" d="M18,30 Q34,40 50,55 Q60,55 72,50 Q80,46 86,32"/>
+      </svg>
+      <div class="markers"></div>
+    </div>
+    <aside class="panel"></aside>
+  </div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta">世界图 · DEV 预览 · 二〇二六</div>
+    <div class="prompts">
+      <div class="prompt"><span class="key cross">✕</span>传送</div>
+      <div class="prompt"><span class="key triangle">△</span>详情</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+    </div>
+  </footer>
+</main>
+</body>
+</html>

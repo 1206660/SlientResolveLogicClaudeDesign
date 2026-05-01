@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 寒土孤山 · WebUI 标题画面</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+.stage {
+  background:
+    radial-gradient(ellipse 22vw 20vh at 56% 31%, rgba(184, 58, 28, 0.08), transparent 70%),
+    radial-gradient(ellipse 38vw 44vh at 76% 30%, rgba(201, 162, 75, 0.14), transparent 62%),
+    linear-gradient(180deg, #08070A 0%, #11100C 35%, #1B1610 66%, #2A1F14 100%);
+}
+
+.moon {
+  position: absolute;
+  top: 12vh;
+  right: 18.7vw;
+  width: 10.4vw;
+  height: 10.4vw;
+  min-width: 108px;
+  min-height: 108px;
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 38%, #F0E5C8 0%, #DBC9A8 45%, #9D8C6E 80%, transparent 100%);
+  box-shadow: 0 0 7.3vw rgba(237, 223, 194, 0.22), 0 0 14vw rgba(237, 223, 194, 0.08);
+}
+
+.moon::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  border: 1px solid rgba(237, 223, 194, 0.12);
+  border-radius: 50%;
+}
+
+.mountains {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hero {
+  position: absolute;
+  left: 50%;
+  bottom: -2.2vh;
+  width: 24vw;
+  min-width: 260px;
+  max-width: 460px;
+  height: auto;
+  opacity: 0.94;
+  transform: translateX(-50%);
+}
+
+/* === 落叶飘飞 ============================================================
+ * 三层独立 transform，分别 GPU 合成：
+ *   .leaf      —— 纵向 linear 下落（恒速重力）
+ *   .leaf-sway —— 横向 ease-in-out alternate（正弦摆，避免折线锯齿）
+ *   .leaf-spin —— linear 持续自转（不随 sway 倒转）
+ * 这样三轴解耦，没有任何关键帧交点处的硬拐角，目视才"丝滑"。
+ * ============================================================================ */
+.leaves {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.leaf {
+  position: absolute;
+  top: -8vh;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: leaf-fall var(--fall-dur, 14s) linear infinite;
+  animation-delay: var(--fall-delay, 0s);
+}
+
+.leaf-sway {
+  display: block;
+  will-change: transform;
+  animation: leaf-sway var(--sway-dur, 3.6s) cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
+  animation-delay: var(--sway-delay, 0s);
+}
+
+.leaf-spin {
+  display: block;
+  width: 14px;
+  height: 8px;
+  border-radius: 80% 10% 80% 10%;
+  background: linear-gradient(135deg, #C99566 0%, #8A5028 60%, #5C3318 100%);
+  transform: scale(var(--leaf-scale, 1));
+  will-change: transform;
+  animation: leaf-spin var(--spin-dur, 7s) linear infinite;
+}
+
+@keyframes leaf-fall {
+  0%   { transform: translate3d(0, 0,    0); opacity: 0; }
+  5%   { opacity: 0.55; }
+  95%  { opacity: 0.5; }
+  100% { transform: translate3d(0, 124vh, 0); opacity: 0; }
+}
+
+@keyframes leaf-sway {
+  0%   { transform: translate3d(calc(var(--sway, 22px) * -1), 0, 0); }
+  100% { transform: translate3d(var(--sway, 22px), 0, 0); }
+}
+
+@keyframes leaf-spin {
+  0%   { transform: scale(var(--leaf-scale, 1)) rotate(var(--rot-from, 0deg)); }
+  100% { transform: scale(var(--leaf-scale, 1)) rotate(calc(var(--rot-from, 0deg) + 360deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaf, .leaf-sway, .leaf-spin { animation: none; }
+  .leaf { opacity: 0.45; top: auto; }
+}
+
+.profile {
+  position: absolute;
+  top: 4.1vh;
+  left: 3.75vw;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 10;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border: 2px solid rgba(237, 223, 194, 0.35);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--paper);
+  background: linear-gradient(135deg, var(--zhusha), var(--zhusha-deep));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.profile-name {
+  color: var(--paper);
+  font-size: 14px;
+  letter-spacing: 0.15em;
+}
+
+.profile-tag,
+.save-time,
+.menu-item small,
+.footer-meta {
+  font-family: var(--font-mono);
+}
+
+.profile-tag {
+  margin-top: 2px;
+  color: var(--paper-dim);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  opacity: 0.62;
+}
+
+.save-hint {
+  position: absolute;
+  top: 4.1vh;
+  right: 3.75vw;
+  z-index: 10;
+  text-align: right;
+}
+
+.save-tag {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--zhusha);
+  color: var(--zhusha-bright);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+}
+
+.save-where {
+  color: var(--paper-2);
+  font-size: 14px;
+  letter-spacing: 0.2em;
+}
+
+.save-time {
+  margin-top: 4px;
+  color: var(--paper-mute);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+.title-wrap {
+  position: absolute;
+  top: 13vh;
+  left: 50%;
+  z-index: 10;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.title-main {
+  padding-left: 0.4em;
+  color: var(--paper);
+  filter: drop-shadow(0 0 1px rgba(237, 223, 194, 0.4));
+  font-size: clamp(92px, 9.4vw, 180px);
+  font-weight: 900;
+  letter-spacing: 0.4em;
+  line-height: 0.9;
+  text-shadow: 0 0 40px rgba(0, 0, 0, 0.95), 0 6px 20px rgba(0, 0, 0, 0.8);
+}
+
+.title-sub {
+  margin-top: 2.6vh;
+  padding-left: 0.55em;
+  color: var(--paper-2);
+  font-size: clamp(18px, 1.46vw, 28px);
+  font-weight: 700;
+  letter-spacing: 0.55em;
+}
+
+.title-divider {
+  width: 280px;
+  height: 1px;
+  margin: 2vh auto 0;
+  background: linear-gradient(90deg, transparent, var(--zhusha), transparent);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+}
+
+.title-tagline {
+  margin-top: 1.3vh;
+  padding-left: 0.4em;
+  color: var(--paper-dim);
+  font-size: clamp(12px, 0.84vw, 16px);
+  letter-spacing: 0.4em;
+  opacity: 0.75;
+}
+
+.corner-seal {
+  position: absolute;
+  top: 21.3vh;
+  right: 28.1vw;
+  z-index: 11;
+  width: 80px;
+  height: 80px;
+  font-size: 52px;
+  transform: rotate(-5deg);
+}
+
+.menu {
+  position: absolute;
+  top: 38vh;
+  bottom: 96px;        /* leave a gap above the footer */
+  left: 4.2vw;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  overflow-y: auto;     /* if too many items, allow scroll instead of clipping under footer */
+  padding: 4px 12px 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(237,223,194,0.18) transparent;
+}
+.menu::-webkit-scrollbar {
+  width: 6px;
+}
+.menu::-webkit-scrollbar-thumb {
+  background: rgba(237,223,194,0.18);
+}
+
+.menu-item {
+  position: relative;
+  min-width: 220px;
+  padding: 6px 4px 6px 28px;
+  border: 0;
+  color: var(--paper-dim);
+  background: transparent;
+  font: inherit;
+  font-size: clamp(20px, 1.35vw, 26px);
+  font-weight: 500;
+  letter-spacing: 0.5em;
+  text-align: left;
+  transition: color 0.25s ease, text-shadow 0.25s ease;
+}
+
+.menu-item::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background: var(--zhusha);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+  transform: translateY(-50%);
+  transition: width 0.2s ease;
+}
+
+.menu-item:hover,
+.menu-item.active {
+  color: var(--paper);
+  text-shadow: 0 0 18px rgba(237, 223, 194, 0.18);
+}
+
+.menu-item.active {
+  font-weight: 700;
+}
+
+.menu-item.active::before {
+  width: 16px;
+}
+
+.menu-item small {
+  display: block;
+  margin-top: 4px;
+  padding-left: 0.4em;
+  color: var(--paper-dim);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.4em;
+  opacity: 0.55;
+}
+
+@media (max-width: 1100px), (max-height: 660px) {
+  .profile,
+  .save-hint {
+    top: 24px;
+  }
+
+  .corner-seal {
+    width: 58px;
+    height: 58px;
+    font-size: 38px;
+  }
+}
+
+/* Quit-confirmation modal */
+.modal-mask {
+  position: absolute; inset: 0;
+  background: rgba(0, 0, 0, 0.66);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 80;
+  animation: stage-fade-in 200ms ease-out;
+}
+.modal-mask.show { display: flex; }
+.modal {
+  width: min(440px, 80vw);
+  padding: 36px 40px;
+  background: linear-gradient(180deg, rgba(20,17,13,0.97) 0%, rgba(10,9,7,0.97) 100%);
+  border: 1px solid var(--zhusha);
+  box-shadow: 0 20px 60px rgba(184,58,28,0.25), 0 0 0 1px rgba(184,58,28,0.18);
+  text-align: center;
+}
+.modal-title {
+  font-family: var(--font-kai);
+  font-size: 28px; letter-spacing: 0.32em;
+  color: var(--paper);
+  margin-bottom: 12px;
+}
+.modal-body {
+  font-family: var(--font-kai);
+  font-size: 15px; line-height: 1.7;
+  color: var(--paper-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 28px;
+}
+.modal-actions {
+  display: flex; gap: 14px; justify-content: center;
+}
+.modal-btn {
+  padding: 12px 32px;
+  font-family: var(--font-kai);
+  font-size: 16px; letter-spacing: 0.32em;
+  color: var(--paper-2);
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--line-mid);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+.modal-btn:hover { color: var(--paper); border-color: var(--paper-dim); background: rgba(237,223,194,0.06); }
+.modal-btn:active { transform: translateY(1px); }
+.modal-btn.danger {
+  border-color: var(--zhusha); color: var(--paper);
+  background: linear-gradient(180deg, rgba(184,58,28,0.5), rgba(138,40,16,0.6));
+  box-shadow: 0 0 14px var(--zhusha-glow);
+}
+.modal-btn.danger:hover { background: linear-gradient(180deg, rgba(216,85,40,0.7), rgba(184,58,28,0.7)); }
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+
+window.SRLogin = {
+  data: {
+    playerName: "風行客",
+    playerStatus: "在线 · 已游 12 时",
+    saveTag: "续旅",
+    saveWhere: "第三幕 · 山村回忆 · 灵儿戏水",
+    saveTime: "二〇二六/四/二四 · 廿二时四一分 · 自动存档",
+    titleMain: "一介",
+    titleSub: "寒土孤山",
+    tagline: "凡人的宁静 · 时代的碾碎",
+    footer: "一介 · 寒土孤山 · 内测版 〇·壹·〇 · 二〇二六",
+    selectedIndex: 0,
+    options: [
+      { optionId: "ContinueJourney", label: "继续旅途", hint: "第三幕 · 山村回忆", enabled: true },
+      { optionId: "NewBeginning", label: "新的开始", hint: "从寒土孤山重新起程", enabled: true },
+      { optionId: "NightRaidCamp", label: "夜探敌营", hint: "进入 RTT 白模敌营", enabled: true },
+      { optionId: "LoadSave", label: "载入存档", hint: "查看可用回忆节点", enabled: true },
+      { optionId: "Settings", label: "设定", hint: "画面 · 声音 · 操作", enabled: true },
+      { optionId: "Quit", label: "退出", hint: "离开游戏", enabled: true }
+    ]
+  },
+  setData(data) {
+    this.data = Object.assign({}, this.data, data || {});
+    this.render();
+  },
+  setSelection(index) {
+    const count = this.data.options.length;
+    if (!count) return;
+    let next = (index + count) % count;
+    for (let i = 0; i < count; i++) {
+      const option = this.data.options[next];
+      if (!option || option.enabled !== false) {
+        // 关键：选中项没变化就直接返回，否则鼠标 hover 期间会无限重建 DOM，
+        // 导致 mousedown/mouseup 落在不同 element 上，click 永远不合成。
+        if (this.data.selectedIndex === next) return;
+        this.data.selectedIndex = next;
+        this.renderMenu();
+        return;
+      }
+      next = (next + 1) % count;
+    }
+  },
+  moveUp() {
+    this.setSelection(this.data.selectedIndex - 1);
+  },
+  moveDown() {
+    this.setSelection(this.data.selectedIndex + 1);
+  },
+  commit() {
+    const option = this.data.options[this.data.selectedIndex];
+    if (!option || option.enabled === false) return;
+    if (option.optionId === "Quit") {
+      this.openQuitModal();
+      return;
+    }
+    ue5("commit", { optionId: option.optionId, label: option.label });
+  },
+  back() {
+    // From login screen, Esc opens the quit modal instead of immediately quitting.
+    if (this.modalOpen()) { this.closeQuitModal(); return; }
+    this.openQuitModal();
+  },
+  modalOpen() {
+    return document.querySelector(".modal-mask").classList.contains("show");
+  },
+  openQuitModal() {
+    document.querySelector(".modal-mask").classList.add("show");
+  },
+  closeQuitModal() {
+    document.querySelector(".modal-mask").classList.remove("show");
+  },
+  confirmQuit() {
+    ue5("commit", { optionId: "Quit", label: "退出" });
+  },
+  render() {
+    document.querySelector(".profile-name").textContent = this.data.playerName;
+    document.querySelector(".profile-tag").textContent = this.data.playerStatus;
+    document.querySelector(".save-tag").textContent = this.data.saveTag;
+    document.querySelector(".save-where").textContent = this.data.saveWhere;
+    document.querySelector(".save-time").textContent = this.data.saveTime;
+    document.querySelector(".title-main").textContent = this.data.titleMain;
+    document.querySelector(".title-sub").textContent = this.data.titleSub;
+    document.querySelector(".title-tagline").textContent = this.data.tagline;
+    document.querySelector(".footer-meta").textContent = this.data.footer;
+    this.renderMenu();
+  },
+  renderMenu() {
+    const menu = document.querySelector(".menu");
+    menu.innerHTML = "";
+    let activeNode = null;
+    this.data.options.forEach((option, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "menu-item" + (index === this.data.selectedIndex ? " active" : "");
+      button.disabled = option.enabled === false;
+      button.innerHTML = `${option.label}${option.hint ? `<small>${option.hint}</small>` : ""}`;
+      button.addEventListener("mouseenter", () => this.setSelection(index));
+      button.addEventListener("click", () => {
+        this.setSelection(index);
+        this.commit();
+      });
+      menu.appendChild(button);
+      if (index === this.data.selectedIndex) activeNode = button;
+    });
+    if (activeNode && typeof activeNode.scrollIntoView === "function") {
+      activeNode.scrollIntoView({ block: "nearest" });
+    }
+  }
+};
+
+ue.interface.setStartupData = function(data) {
+  window.SRLogin.setData(data);
+};
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowUp" || event.key === "w" || event.key === "W") {
+    event.preventDefault();
+    window.SRLogin.moveUp();
+  } else if (event.key === "ArrowDown" || event.key === "s" || event.key === "S") {
+    event.preventDefault();
+    window.SRLogin.moveDown();
+  } else if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    window.SRLogin.commit();
+  } else if (event.key === "Escape" || event.key === "Backspace") {
+    event.preventDefault();
+    window.SRLogin.back();
+  }
+});
+
+/* ----- 落叶飘飞：注入 14 片三层结构 -----
+ * 每片三个嵌套节点 .leaf / .leaf-sway / .leaf-spin 各自动一个 transform 轴，
+ * 全部随机参数（fall/sway/spin 的时长、延迟、初相位），不会同步、不会机械。 */
+function srSpawnLeaves(count) {
+  const layer = document.querySelector(".leaves");
+  if (!layer) return;
+  layer.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < count; i++) {
+    const leaf = document.createElement("div");
+    leaf.className = "leaf";
+    const left      = (i + 0.5) * (100 / count) + (Math.random() - 0.5) * 4;
+    const fallDur   = 11 + Math.random() * 12;     /* 11–23s 慢飘 */
+    const fallDelay = -Math.random() * fallDur;
+    const swayDur   = 2.6 + Math.random() * 2.8;   /* 2.6–5.4s 摆动周期 */
+    const swayDelay = -Math.random() * swayDur;    /* 让正弦相位散开 */
+    const spinDur   = 5 + Math.random() * 7;       /* 5–12s 一周自转 */
+    const scale     = 0.6 + Math.random() * 1.1;   /* 0.6–1.7 */
+    const sway      = 16 + Math.random() * 36;     /* 16–52px 横摆幅度 */
+    const rot       = Math.random() * 360;
+    leaf.style.left = `${left}%`;
+    leaf.style.setProperty("--fall-dur",   `${fallDur.toFixed(2)}s`);
+    leaf.style.setProperty("--fall-delay", `${fallDelay.toFixed(2)}s`);
+    leaf.style.setProperty("--sway-dur",   `${swayDur.toFixed(2)}s`);
+    leaf.style.setProperty("--sway-delay", `${swayDelay.toFixed(2)}s`);
+    leaf.style.setProperty("--spin-dur",   `${spinDur.toFixed(2)}s`);
+    leaf.style.setProperty("--leaf-scale", scale.toFixed(2));
+    leaf.style.setProperty("--sway",       `${sway.toFixed(1)}px`);
+    leaf.style.setProperty("--rot-from",   `${rot.toFixed(0)}deg`);
+    leaf.innerHTML = `<div class="leaf-sway"><div class="leaf-spin"></div></div>`;
+    frag.appendChild(leaf);
+  }
+  layer.appendChild(frag);
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  srSpawnLeaves(14);
+  if (window.SRPerfHud && !SRPerfHud.isVisible()) SRPerfHud.toggle(); /* 帧率 HUD 默认开 */
+  window.SRLogin.render();
+  ue5("ready", { surface: "startup-web-login" });
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <svg class="mountains" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,750 L160,670 L340,710 L520,650 L720,690 L900,630 L1080,690 L1260,650 L1440,710 L1620,670 L1800,710 L1920,680 L1920,1080 L0,1080 Z" fill="#16110C" opacity="0.7"/>
+    <path d="M0,860 L220,800 L420,840 L620,780 L820,820 L1020,770 L1220,820 L1420,790 L1620,840 L1920,810 L1920,1080 L0,1080 Z" fill="#0E0A07" opacity="0.88"/>
+    <path d="M0,940 L80,920 L160,940 L240,910 L320,930 L400,910 L480,930 L560,910 L640,935 L720,915 L800,940 L880,920 L960,945 L1040,925 L1120,950 L1200,925 L1280,950 L1360,930 L1440,955 L1520,935 L1600,955 L1680,935 L1760,955 L1840,940 L1920,955 L1920,1080 L0,1080 Z" fill="#0A0805"/>
+  </svg>
+
+  <div class="moon" aria-hidden="true"></div>
+  <svg class="hero" viewBox="0 0 580 700" aria-hidden="true">
+    <g fill="#040303" opacity="0.96">
+      <ellipse cx="290" cy="190" rx="100" ry="32"/>
+      <rect x="278" y="190" width="24" height="60"/>
+      <ellipse cx="290" cy="248" rx="22" ry="28"/>
+      <path d="M225,260 L210,360 L195,520 L188,690 L235,700 L345,700 L392,690 L385,520 L370,360 L355,260 Q290,240 225,260 Z"/>
+      <rect x="378" y="320" width="6" height="240" transform="rotate(8 381 440)"/>
+      <rect x="370" y="312" width="22" height="6" transform="rotate(8 381 315)"/>
+      <circle cx="381" cy="305" r="9" fill="none" stroke="#040303" stroke-width="3"/>
+    </g>
+  </svg>
+
+  <div class="vignette"></div>
+  <div class="grain"></div>
+  <!-- 落叶节点由 srSpawnLeaves() 在 DOMContentLoaded 时注入 -->
+  <div class="leaves" aria-hidden="true"></div>
+
+  <section class="profile" aria-label="玩家档案">
+    <div class="avatar">風</div>
+    <div>
+      <div class="profile-name"></div>
+      <div class="profile-tag"></div>
+    </div>
+  </section>
+
+  <section class="save-hint" aria-label="最近存档">
+    <div class="save-tag"></div>
+    <div class="save-where"></div>
+    <div class="save-time"></div>
+  </section>
+
+  <section class="title-wrap" aria-label="标题">
+    <div class="title-main"></div>
+    <div class="title-sub"></div>
+    <div class="title-divider"></div>
+    <div class="title-tagline"></div>
+  </section>
+
+  <div class="seal corner-seal">介</div>
+  <nav class="menu" aria-label="主菜单"></nav>
+
+  <footer class="footer-bar">
+    <div class="footer-meta"></div>
+    <div class="prompts">
+      <div class="prompt"><span class="key cross">✕</span>确认</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+      <div class="prompt"><span class="key triangle">△</span>详情</div>
+    </div>
+  </footer>
+
+  <div class="modal-mask" role="dialog" aria-modal="true" aria-labelledby="quitTitle">
+    <div class="modal">
+      <div class="modal-title" id="quitTitle">确定退出？</div>
+      <div class="modal-body">未保存的进度将不会丢失（自动存档已就绪）。</div>
+      <div class="modal-actions">
+        <button class="modal-btn" type="button" onclick="window.SRLogin.closeQuitModal()">留 下</button>
+        <button class="modal-btn danger" type="button" onclick="window.SRLogin.confirmQuit()">退 出</button>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>
