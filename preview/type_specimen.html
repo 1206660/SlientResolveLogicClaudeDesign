@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-CN" data-sr-page="type">
+<head>
+<meta charset="utf-8">
+<title>Type Specimen · 一介 · PS5</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; }
+  body {
+    width: 1100px; height: 720px;
+    position: relative;
+    color: var(--ink-1);
+    font-family: var(--font-kai);
+    background:
+      radial-gradient(ellipse 26vw 18vh at 51% 32%, rgba(255,255,255,.92), transparent 72%),
+      radial-gradient(ellipse 48vw 36vh at 51% 56%, rgba(213,225,238,.44), transparent 78%),
+      radial-gradient(ellipse 20vw 16vh at 9% 94%, rgba(115,132,145,.30), transparent 72%),
+      radial-gradient(ellipse 24vw 20vh at 86% 91%, rgba(190,202,214,.24), transparent 74%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='71'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 48%, #DCE6EF 100%);
+  }
+  /* mountain silhouette + temple */
+  body::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 30vh;
+    pointer-events: none; z-index: 0;
+    background:
+      linear-gradient(0deg, rgba(36,43,48,.30), transparent 65%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 420' preserveAspectRatio='none'><path d='M0 330 C160 270 260 355 410 300 C520 260 640 350 790 300 C940 245 1030 345 1200 292 C1370 240 1480 335 1600 278 L1600 420 L0 420 Z' fill='%233A4146' opacity='.32'/><path d='M370 310 C445 265 512 285 610 250 C548 316 470 333 370 310 Z' fill='%231D2225' opacity='.28'/><path d='M0 405 C250 360 460 393 700 350 C980 302 1210 388 1600 330 L1600 420 L0 420 Z' fill='%23080A0B' opacity='.20'/><path d='M92 382 L130 338 L170 382 Z M111 365 L111 420 L124 420 L124 365 Z' fill='%23080A0B' opacity='.26'/></svg>");
+  }
+  /* paper grain stipple */
+  body::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(circle 1.2px at 6% 18%, rgba(255,255,255,.90), transparent 72%),
+      radial-gradient(circle 1px at 89% 9%, rgba(255,255,255,.78), transparent 72%),
+      radial-gradient(circle 1.4px at 91% 28%, rgba(255,255,255,.90), transparent 72%);
+    opacity: .8;
+  }
+
+  /* === leaves drifting (Ghost of Tsushima petals) === */
+  .leaf {
+    position: absolute; z-index: 1; width: 14px; height: 14px;
+    color: rgba(138, 46, 40, 0.62);
+    pointer-events: none;
+    animation: fall linear infinite, sway ease-in-out infinite alternate;
+  }
+  .leaf svg { width: 100%; height: 100%; transform: rotate(var(--r, 0deg)); }
+  .leaf.l1 { left: 12%; --r: 14deg; animation-duration: 18s, 4.2s; animation-delay: -2s, 0s; }
+  .leaf.l2 { left: 28%; --r: -22deg; animation-duration: 22s, 3.6s; animation-delay: -8s, 0s; }
+  .leaf.l3 { left: 44%; --r: 30deg; animation-duration: 16s, 5s; animation-delay: -12s, 0s; }
+  .leaf.l4 { left: 64%; --r: -8deg; animation-duration: 20s, 4.6s; animation-delay: -4s, 0s; }
+  .leaf.l5 { left: 78%; --r: 18deg; animation-duration: 24s, 3.8s; animation-delay: -14s, 0s; }
+  .leaf.l6 { left: 90%; --r: -28deg; animation-duration: 19s, 4.4s; animation-delay: -6s, 0s; }
+  @keyframes fall {
+    from { transform: translateY(-30px); }
+    to   { transform: translateY(750px); }
+  }
+  @keyframes sway {
+    from { margin-left: -14px; }
+    to   { margin-left: 14px; }
+  }
+
+  /* === 3 brush birds === */
+  .bird { position: absolute; width: 24px; height: 10px; z-index: 2; }
+  .bird::before, .bird::after {
+    content: ""; position: absolute; top: 0; width: 12px; height: 10px;
+    border: 1.5px solid rgba(0,0,0,0.62); border-radius: 50% 50% 0 0;
+    border-bottom: none;
+  }
+  .bird::before { left: 0; transform: rotate(-22deg); }
+  .bird::after  { right: 0; transform: rotate(22deg); }
+  .b1 { top: 76px; left: 18%; transform: rotate(-3deg); }
+  .b2 { top: 96px; left: 26%; transform: rotate(2deg) scale(0.78); }
+  .b3 { top: 84px; left: 32%; transform: rotate(-1deg) scale(0.88); }
+
+  /* ============ PAGE-SHELL TAB BAR (top-left, Ink theme) ============ */
+  .page-shell {
+    position: absolute; top: 16px; left: 56px; z-index: 6;
+    display: inline-flex; gap: 0;
+    background: rgba(248,251,255,0.42);
+    border: 1px solid rgba(38,45,51,0.14);
+    backdrop-filter: blur(8px);
+    padding: 4px;
+  }
+  .tab {
+    padding: 7px 16px 9px;
+    font-family: var(--font-kai); font-size: 14px; font-weight: 700;
+    letter-spacing: 0.18em;
+    color: rgba(5,7,8,0.58);
+    cursor: pointer;
+  }
+  .tab.active {
+    background: rgba(255,255,255,0.86); color: var(--ink-black);
+    box-shadow: inset 0 -2px 0 rgba(5,6,7,0.78);
+  }
+
+  /* ============ FOOTER PROMPT BAR =================================== */
+  .footer-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 56px;
+    z-index: 6;
+    background: linear-gradient(0deg, rgba(20, 24, 28, 0.42), rgba(20, 24, 28, 0.18) 60%, transparent);
+  }
+  .build-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.20em; color: rgba(248,251,255,0.78); }
+  .prompts { display: inline-flex; align-items: center; gap: 22px; }
+  .prompt { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-kai); font-size: 14px; letter-spacing: 0.22em; color: rgba(248,251,255,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+  .key {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 50%;
+    font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.32), 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .key.cross    { background: #2A6BD0; color: white; }
+  .key.circle   { background: #C94A3A; color: white; }
+  .key.triangle { background: #2BA589; color: white; }
+
+  /* ============ MAIN CONTENT ======================================== */
+  .stage {
+    position: absolute; inset: 70px 56px 64px 56px;
+    z-index: 4;
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) 1fr;
+    gap: 56px;
+    align-items: start;
+  }
+
+  /* ---- LEFT: hero brand panel (vertical 一介 + spear) ---- */
+  .brand-col {
+    position: relative;
+    padding-top: 24px;
+  }
+  .brand-eyebrow {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.32em;
+    color: var(--paper-mute); text-transform: uppercase; margin-bottom: 14px;
+  }
+  .brand-stack {
+    position: relative; padding: 12px 24px 18px;
+    display: inline-block;
+  }
+  .brand-stack::before {
+    content: ""; position: absolute;
+    top: 0; left: 50%;
+    width: 78px; height: 240px;
+    transform: translateX(-50%) rotate(-2deg);
+    background: linear-gradient(180deg, #060708 0%, #1A1F23 60%, rgba(20,24,28,0.55) 100%);
+    border-radius: 70% 50% 60% 42%;
+    box-shadow: 0 18px 36px rgba(8,12,16,0.42), inset -6px 0 12px rgba(255,255,255,0.04);
+    z-index: 0;
+  }
+  .brand-vertical {
+    position: relative; z-index: 1;
+    writing-mode: vertical-rl; text-orientation: upright;
+    font-family: var(--font-kai); font-size: 108px; font-weight: 900;
+    letter-spacing: 0.10em; color: #F8FBFF;
+    line-height: 0.96;
+    transform: rotate(-2deg);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.4), 0 14px 28px rgba(0,0,0,0.5);
+  }
+  .brand-seal {
+    position: absolute; bottom: 4px; right: -6px;
+    width: 42px; height: 42px;
+    background: var(--zhusha); color: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-kai); font-size: 20px; font-weight: 900;
+    transform: rotate(-4deg);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.18), 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 2;
+  }
+  .brand-seal::before { content: ""; position: absolute; inset: 3px; border: 1px solid rgba(255,255,255,0.25); }
+
+  .subtitle {
+    margin-top: 28px;
+    font-family: var(--font-kai); font-size: 22px; font-weight: 900;
+    letter-spacing: 0.32em; color: var(--ink-black);
+    text-shadow: 0 1px 0 rgba(255,255,255,0.42);
+  }
+  .tag {
+    margin-top: 10px;
+    font-family: var(--font-kai); font-size: 13px; letter-spacing: 0.32em;
+    color: rgba(5,7,8,0.6);
+  }
+
+  /* ---- RIGHT: type spec panels ---- */
+  .specs {
+    position: relative;
+    padding: 20px 28px;
+    background: rgba(248,251,255,0.46);
+    border: 1px solid rgba(38,45,51,0.14);
+    backdrop-filter: blur(10px) saturate(1.05);
+    box-shadow: 0 18px 52px rgba(96,115,132,0.12), inset 0 0 0 1px rgba(255,255,255,0.32);
+  }
+  .specs-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-bottom: 12px; margin-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .specs-head h2 {
+    margin: 0;
+    font-family: var(--font-kai); font-size: 22px; font-weight: 900;
+    letter-spacing: 0.28em; color: var(--ink-black);
+  }
+  .specs-head .meta { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; color: var(--paper-mute); text-transform: uppercase; }
+
+  .row {
+    display: grid; grid-template-columns: 130px 1fr;
+    gap: 20px; padding: 11px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .row:last-of-type { border-bottom: 0; }
+  .row .lbl {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.20em; color: var(--paper-mute);
+    text-transform: uppercase; padding-top: 6px;
+  }
+  .row .lbl small {
+    display: block; margin-top: 3px;
+    font-family: var(--font-kai); font-size: 11px;
+    letter-spacing: 0.18em; color: var(--paper-mute);
+    text-transform: none;
+  }
+
+  .h1 { font-family: var(--font-kai); font-size: 38px; font-weight: 900; letter-spacing: 0.30em; color: var(--ink-black); line-height: 1.1; }
+  .h2 { font-family: var(--font-kai); font-size: 26px; font-weight: 900; letter-spacing: 0.22em; }
+  .h3 { font-family: var(--font-kai); font-size: 17px; font-weight: 700; letter-spacing: 0.18em; }
+  .body { font-family: var(--font-body); font-size: 13px; line-height: 1.72; letter-spacing: 0.06em; color: rgba(5,7,8,0.78); margin: 0; }
+  .caption { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.20em; color: var(--paper-mute); }
+
+  .seal-inline {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    background: var(--zhusha); color: var(--paper);
+    font-family: var(--font-kai); font-size: 16px; font-weight: 900;
+    transform: rotate(-3deg);
+    box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.18), 0 3px 6px rgba(0,0,0,0.28);
+    margin-left: 10px; vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+  <!-- top tab shell -->
+  <nav class="page-shell">
+    <div class="tab">地图</div>
+    <div class="tab">日志</div>
+    <div class="tab">行囊</div>
+    <div class="tab active">阅览 · 字符</div>
+    <div class="tab">武学</div>
+    <div class="tab">议政厅</div>
+  </nav>
+
+  <!-- birds + leaves -->
+  <div class="bird b1"></div><div class="bird b2"></div><div class="bird b3"></div>
+  <div class="leaf l1"><svg viewBox="0 0 14 14"><path d="M7 0 C9 4 14 4 14 7 C14 10 9 10 7 14 C5 10 0 10 0 7 C0 4 5 4 7 0 Z" fill="currentColor"/></svg></div>
+  <div class="leaf l2"><svg viewBox="0 0 14 14"><path d="M7 0 C9 4 14 4 14 7 C14 10 9 10 7 14 C5 10 0 10 0 7 C0 4 5 4 7 0 Z" fill="currentColor"/></svg></div>
+  <div class="leaf l3"><svg viewBox="0 0 14 14"><path d="M7 0 C9 4 14 4 14 7 C14 10 9 10 7 14 C5 10 0 10 0 7 C0 4 5 4 7 0 Z" fill="currentColor"/></svg></div>
+  <div class="leaf l4"><svg viewBox="0 0 14 14"><path d="M7 0 C9 4 14 4 14 7 C14 10 9 10 7 14 C5 10 0 10 0 7 C0 4 5 4 7 0 Z" fill="currentColor"/></svg></div>
+  <div class="leaf l5"><svg viewBox="0 0 14 14"><path d="M7 0 C9 4 14 4 14 7 C14 10 9 10 7 14 C5 10 0 10 0 7 C0 4 5 4 7 0 Z" fill="currentColor"/></svg></div>
+  <div class="leaf l6"><svg viewBox="0 0 14 14"><path d="M7 0 C9 4 14 4 14 7 C14 10 9 10 7 14 C5 10 0 10 0 7 C0 4 5 4 7 0 Z" fill="currentColor"/></svg></div>
+
+  <main class="stage">
+    <!-- left: hero brand -->
+    <section class="brand-col">
+      <div class="brand-eyebrow">章 · 字 / type specimen</div>
+      <div class="brand-stack">
+        <div class="brand-vertical">一介</div>
+        <div class="brand-seal">介</div>
+      </div>
+      <div class="subtitle">寒 土 孤 山</div>
+      <div class="tag">凡人的宁静 · 时代的碾碎</div>
+    </section>
+
+    <!-- right: type rows -->
+    <section class="specs">
+      <header class="specs-head">
+        <h2>字 · 楷 书 体</h2>
+        <span class="meta">KAI · BRUSH · 钟齐马善政</span>
+      </header>
+
+      <div class="row">
+        <div class="lbl">H1 · 章 名<small>38px / 0.30em</small></div>
+        <div class="h1">寒 土 孤 山<span class="seal-inline">介</span></div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">H2 · 节<small>26px / 0.22em</small></div>
+        <div class="h2">第三幕 · 山村回忆</div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">H3 · 卡<small>17px / 0.18em</small></div>
+        <div class="h3">继续旅途 · 载入存档 · 设定</div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">Body · 楷书<small>13px / 1.72 / 0.06em</small></div>
+        <p class="body">
+          雪声未停，墨迹已干。客自远方来，肩担一介书生气，途经寒山三百里。山中有古亭一座，残碑一块，刻字曰：「凡人之路，多在风雪。」
+        </p>
+      </div>
+
+      <div class="row">
+        <div class="lbl">Mono · 系统<small>JetBrains 10px / 0.20em</small></div>
+        <div>
+          <div class="caption">YIJIE / HANWRAITH · BUILD 0.1.0 · 二〇二六/四/二四</div>
+          <div class="caption" style="margin-top: 4px;">SAVE · 已游 12 时 · CHAPTER 03 · 山村回忆</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- footer prompt bar -->
+  <footer class="footer-bar">
+    <div class="build-tag">YIJIE · 〇·壹·〇 · 二〇二六</div>
+    <div class="prompts">
+      <span class="prompt"><span class="key cross">✕</span> 确 认</span>
+      <span class="prompt"><span class="key circle">○</span> 返 回</span>
+      <span class="prompt"><span class="key triangle">△</span> 阅 览</span>
+    </div>
+  </footer>
+</body>
+</html>

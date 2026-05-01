@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Spacing · Elevation · 一介</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin:0; padding:0; }
+  body {
+    width: 1100px; min-height: 720px;
+    padding: 48px 56px;
+    background:
+      radial-gradient(ellipse 60vw 30vh at 50% 30%, rgba(255,255,255,.85), transparent 72%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='9'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 48%, #DCE6EF 100%);
+    color: var(--ink-1);
+  }
+  .head { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.32em; color: var(--paper-mute); text-transform: uppercase; margin-bottom: 8px; }
+  h2 { font-family: var(--font-kai); font-weight: 900; font-size: 28px; letter-spacing: 0.22em; margin: 0 0 22px; color: var(--ink-black); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+  .group { margin-bottom: 36px; }
+  .spacing-row { display: flex; align-items: center; gap: 16px; padding: 6px 0; }
+  .spacing-row .lbl { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--paper-mute); width: 100px; }
+  .spacing-row .bar { background: var(--ink-2); height: 12px; }
+  .spacing-row .v { font-family: var(--font-mono); font-size: 11px; color: var(--paper-mute); }
+
+  .panel-tier {
+    padding: 22px 26px;
+    background: rgba(248,251,255,0.54);
+    border: 1px solid rgba(38,45,51,0.14);
+    backdrop-filter: blur(8px);
+    margin-bottom: 22px;
+  }
+  .tier-1 { box-shadow: 0 8px 18px rgba(66,78,88,0.15), inset 0 0 0 1px rgba(255,255,255,0.28); }
+  .tier-2 { box-shadow: 0 18px 52px rgba(96,115,132,0.12), inset 0 0 0 1px rgba(255,255,255,0.30); background: rgba(255,255,255,0.66); }
+  .tier-3 { box-shadow: 0 30px 88px rgba(87,104,119,0.18), inset 0 0 0 1px rgba(255,255,255,0.48); background: rgba(255,255,255,0.78); }
+  .panel-tier h3 { font-family: var(--font-kai); font-size: 17px; font-weight: 900; letter-spacing: 0.18em; margin: 0 0 4px; }
+  .panel-tier p { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--paper-mute); margin: 0; }
+
+  .corner-row { display: flex; gap: 18px; align-items: flex-end; margin-top: 8px; }
+  .corner-row .box {
+    width: 90px; height: 90px;
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(38,45,51,0.24);
+    box-shadow: 0 8px 18px rgba(66,78,88,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; color: var(--paper-mute);
+  }
+  .corner-row .box.r-soft { border-radius: 3px; }
+  .corner-row .box.r-pill { border-radius: 999px; width: 50px; height: 50px; }
+</style>
+</head>
+<body>
+  <div class="head">一介 / spacing & elevation</div>
+  <h2>留 白 · 纸的层叠</h2>
+
+  <div class="grid">
+    <div>
+      <div class="head">Spacing scale</div>
+      <div class="group">
+        <div class="spacing-row"><span class="lbl">space-1</span><div class="bar" style="width:4px;"></div><span class="v">4px</span></div>
+        <div class="spacing-row"><span class="lbl">space-2</span><div class="bar" style="width:8px;"></div><span class="v">8px</span></div>
+        <div class="spacing-row"><span class="lbl">space-3</span><div class="bar" style="width:12px;"></div><span class="v">12px</span></div>
+        <div class="spacing-row"><span class="lbl">space-4</span><div class="bar" style="width:16px;"></div><span class="v">16px</span></div>
+        <div class="spacing-row"><span class="lbl">space-5</span><div class="bar" style="width:22px;"></div><span class="v">22px</span></div>
+        <div class="spacing-row"><span class="lbl">space-6</span><div class="bar" style="width:32px;"></div><span class="v">32px</span></div>
+        <div class="spacing-row"><span class="lbl">space-7</span><div class="bar" style="width:48px;"></div><span class="v">48px</span></div>
+      </div>
+
+      <div class="head">Corners</div>
+      <div class="corner-row">
+        <div class="box">0px<br>panels</div>
+        <div class="box r-soft">3px<br>dialogue</div>
+        <div class="box r-pill">pill</div>
+      </div>
+      <p style="font-family:var(--font-body); font-size:13px; line-height:1.7; color:rgba(5,7,8,0.7); margin-top: 18px; max-width: 380px;">
+        Sharp corners are the rule &mdash; we are paper, not glass. Soft 3px reserved for dialogue panels; pill capsules only for keys.
+      </p>
+    </div>
+
+    <div>
+      <div class="head">Elevation tiers</div>
+      <div class="panel-tier tier-1"><h3>Tier 1 · 印</h3><p>seals · badges · kbd capsules</p></div>
+      <div class="panel-tier tier-2"><h3>Tier 2 · 卡</h3><p>cards · list rows · tab plates</p></div>
+      <div class="panel-tier tier-3"><h3>Tier 3 · 阁</h3><p>floating menus · modals · save toasts</p></div>
+
+      <div class="head" style="margin-top: 18px;">Safe area</div>
+      <p style="font-family:var(--font-body); font-size:13px; line-height:1.7; color:rgba(5,7,8,0.74); margin: 0; max-width: 420px;">
+        Horizontal padding <code style="font-family:var(--font-mono);font-size:12px;">clamp(46px, 5vw, 92px)</code> · vertical <code style="font-family:var(--font-mono);font-size:12px;">clamp(30px, 4.2vh, 72px)</code>. Reference 1920×1080. Never below min-width 960 / min-height 540.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

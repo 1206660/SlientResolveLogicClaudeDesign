@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 武学 · 水墨教武场</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+/* === 水墨 · 武学教武场 ====================================================
+ * 布局重构：三栏 = 流派飘旗 + 兵牌阵列 + 招式秘籍水墨
+ *   ┌══朱漆门匾「武学」 + 「武」朱印══════════════════════════════════┐
+ *   │ ▌旗杆▌  │  兵牌阵列(grid wrap)             │ 水墨右栏        │
+ *   │ ▌汉刀▌  │  ┌兵牌┐┌兵牌┐┌兵牌┐           │ 招式名 + tag    │
+ *   │ ▌轻功▌  │  │挥砍│ │乱风│ │穿心│           │ ─朱砂分隔─      │
+ *   │ ▌铁气▌  │  └────┘└────┘└────┘           │ 招式诀(段落)    │
+ *   │ ▌风咏▌  │                                  │ 诸数 grid       │
+ *   ├══木轴 + 军令传承条════════════════════════════════════════════════┤
+ *   └────────────────────────────────────────────────────────────────────┘
+ *
+ * SRSkills 命名空间、setSkillsData、SRBridge 协议层一致保留。
+ * ============================================================================ */
+
+.stage {
+  background:
+    radial-gradient(ellipse 50vw 30vh at 50% 30%, rgba(184, 58, 28, 0.08), transparent 70%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence baseFrequency='0.014 0.04' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.28  0 0 0 0 0.14  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+    linear-gradient(180deg, #1A0F06 0%, #2A1B0E 50%, #3A2616 100%);
+}
+
+/* === 顶部朱漆门匾 ====================================================== */
+.header {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 124px;
+  display: flex; align-items: center; gap: 22px;
+  padding: 0 calc(5vw + 80px) 0 6vw;
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(0, 0, 0, 0.06) 0px, rgba(0, 0, 0, 0.06) 1px,
+      transparent 1px, transparent 5px),
+    linear-gradient(180deg, #2A1B0E 0%, var(--zhusha-deep) 30%, #6A1A08 50%, var(--zhusha-deep) 70%, #2A1B0E 100%);
+  border-bottom: 4px solid #2A1B0E;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), inset 0 0 0 2px rgba(220, 184, 122, 0.18);
+  z-index: 6;
+}
+.header::before, .header::after {
+  content: ""; position: absolute; left: 8px; right: 8px; height: 4px;
+  background:
+    radial-gradient(circle 2px at 5% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 25% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 50% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 75% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 95% 50%, #BC8F3A, transparent 55%);
+}
+.header::before { top: 6px; }
+.header::after { bottom: 8px; }
+
+.bc-kanji {
+  font-family: var(--font-kai);
+  font-size: clamp(36px, 4.0vw, 56px);
+  font-weight: 900;
+  letter-spacing: 0.4em; padding-left: 0.4em;
+  color: var(--paper);
+  text-shadow: 0 0 14px rgba(255, 220, 170, 0.5), 0 3px 6px rgba(0, 0, 0, 0.7);
+  position: relative; z-index: 2;
+}
+.bc-path {
+  margin-left: auto;
+  display: flex; align-items: center;
+  font-family: var(--font-kai);
+  font-size: 13px; letter-spacing: 0.32em;
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(76, 52, 28, 0.18) 0px, rgba(76, 52, 28, 0.18) 1px,
+      transparent 1px, transparent 4px),
+    linear-gradient(180deg, #C99566 0%, #A07546 100%);
+  border-left: 3px solid #4A2E16;
+  border-right: 3px solid #4A2E16;
+  padding: 8px 18px;
+  border-radius: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: #2A1B0E;
+}
+.bc-path span { padding: 0 8px; }
+.bc-path .sep { opacity: 0.45; color: var(--zhusha-deep); padding: 0 2px; }
+.bc-path .cur { color: var(--zhusha-deep); font-weight: 900; }
+
+.seal.corner-seal-2 {
+  position: absolute;
+  top: 30px; right: 5vw;
+  width: 64px; height: 64px;
+  font-size: 32px;
+  background: var(--zhusha);
+  border: 3px solid #2A1B0E;
+  border-radius: 0;
+  color: var(--paper);
+  font-family: var(--font-kai);
+  display: flex; align-items: center; justify-content: center;
+  transform: rotate(-5deg); z-index: 9;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 222, 170, 0.22),
+    inset 0 0 12px rgba(0, 0, 0, 0.4),
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    0 0 18px var(--zhusha-glow);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.55);
+}
+
+/* === 主体三栏 ========================================================== */
+.body {
+  position: absolute;
+  top: 124px; left: 0; right: 0; bottom: 72px;
+  display: grid;
+  grid-template-columns: 240px 1fr 380px;
+  gap: 0;
+}
+
+/* === 左栏：四面流派飘旗（list） ======================================== */
+.list {
+  border-right: 4px solid #2A1B0E;
+  padding: 24px 0 24px 24px;
+  background: linear-gradient(180deg, rgba(20, 12, 6, 0.6) 0%, rgba(40, 24, 12, 0.4) 100%);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 184, 122, 0.2) transparent;
+  position: relative;
+}
+.list::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 8px;
+  width: 6px;
+  background: linear-gradient(180deg, #6E4824 0%, #8E5C30 50%, #6E4824 100%);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
+}
+.list::after {
+  content: "";
+  position: absolute;
+  top: 6px; left: 5px;
+  width: 12px; height: 12px;
+  background: radial-gradient(circle, #FFE4B0 30%, var(--gold) 70%);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--gold);
+}
+
+.school {
+  position: relative;
+  display: flex; flex-direction: column;
+  padding: 14px 18px 14px 22px;
+  cursor: pointer;
+  margin: 0 16px 14px 0;
+  background: linear-gradient(90deg, rgba(40, 24, 12, 0.4) 0%, rgba(20, 12, 6, 0.6) 100%);
+  border: 2px solid #4A2E16;
+  border-left: 4px solid var(--zhusha-deep);
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.18s cubic-bezier(0.3, 0.9, 0.4, 1), background 0.18s ease, border-color 0.18s ease;
+}
+.school::before {
+  content: "";
+  position: absolute;
+  top: 0; right: -2px; bottom: 0;
+  width: 18px;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 50% 50%, 100% 100%, 0 100%);
+}
+.school:hover {
+  transform: translateX(4px);
+  border-left-color: var(--zhusha);
+}
+.school.active {
+  transform: translateX(8px);
+  background: linear-gradient(90deg, rgba(184, 58, 28, 0.35) 0%, rgba(122, 28, 12, 0.5) 100%);
+  border-color: var(--zhusha);
+  border-left-color: var(--zhusha-bright);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.55),
+    0 0 18px var(--zhusha-glow),
+    inset 0 0 0 1px rgba(255, 222, 170, 0.32);
+}
+.school-name {
+  font-family: var(--font-kai);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.4em; padding-left: 0.4em;
+  color: var(--paper-dim);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.school.active .school-name { color: var(--paper); }
+.school-tag {
+  margin-top: 6px;
+  font-family: var(--font-kai);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  color: rgba(220, 184, 122, 0.55);
+}
+.school.active .school-tag { color: rgba(255, 222, 170, 0.8); }
+
+/* === 中栏：兵牌阵列（tree） ============================================ */
+.tree {
+  padding: 28px 4vw 28px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 184, 122, 0.25) transparent;
+  background:
+    radial-gradient(ellipse 60% 30% at 50% 0%, rgba(184, 58, 28, 0.06), transparent 70%),
+    repeating-linear-gradient(0deg,
+      rgba(45, 28, 14, 0.10) 0px, rgba(45, 28, 14, 0.10) 1px,
+      transparent 1px, transparent 8px);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  align-content: start;
+}
+.tree-head {
+  grid-column: 1 / -1;
+  display: flex; align-items: baseline; gap: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px dashed rgba(220, 184, 122, 0.32);
+  position: relative;
+}
+.tree-head::before {
+  content: "";
+  position: absolute;
+  left: -10px; top: 6px;
+  width: 8px; height: 8px;
+  background: var(--zhusha);
+  transform: rotate(45deg);
+  box-shadow: 0 0 6px var(--zhusha-glow);
+}
+.tree-title {
+  font-family: var(--font-kai);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.32em; padding-left: 0.32em;
+  color: var(--paper);
+  text-shadow: 0 0 12px rgba(255, 220, 170, 0.4), 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+.tree-hint {
+  margin-left: auto;
+  font-family: var(--font-kai);
+  font-size: 12px;
+  color: var(--paper-2);
+  letter-spacing: 0.3em;
+  background: rgba(184, 58, 28, 0.32);
+  padding: 4px 10px;
+  border: 1px solid rgba(220, 184, 122, 0.32);
+}
+
+/* 兵牌 = .skill-row */
+.skill-row {
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: stretch;
+  padding: 14px 14px 36px;
+  background:
+    radial-gradient(ellipse 90% 30% at 50% 0%, rgba(184, 58, 28, 0.16), transparent 70%),
+    linear-gradient(180deg, #3A2614 0%, #2A1B0E 60%, #1A1108 100%);
+  border: 2px solid #6E4824;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.3, 0.9, 0.4, 1),
+              border-color 0.18s ease, box-shadow 0.18s ease;
+  box-shadow:
+    inset 0 0 0 1px rgba(220, 184, 122, 0.22),
+    0 4px 10px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.skill-row::before {
+  content: "";
+  position: absolute;
+  top: 4px; left: 8px; right: 8px;
+  height: 3px;
+  background:
+    radial-gradient(circle 1.5px at 12% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 50% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 88% 50%, #BC8F3A, transparent 55%);
+}
+.skill-row::after {
+  content: "令";
+  position: absolute;
+  bottom: 4px; right: 10px;
+  font-family: var(--font-kai);
+  font-size: 10px; letter-spacing: 0.2em;
+  color: rgba(220, 184, 122, 0.32);
+}
+.skill-row:hover {
+  transform: translateY(-3px);
+  border-color: rgba(220, 184, 122, 0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(220, 184, 122, 0.32),
+    0 8px 18px rgba(0, 0, 0, 0.55);
+}
+.skill-row.active {
+  transform: translateY(-4px);
+  border-color: var(--zhusha-bright);
+  background:
+    radial-gradient(ellipse 90% 30% at 50% 0%, rgba(184, 58, 28, 0.32), transparent 70%),
+    linear-gradient(180deg, #5C3318 0%, #3A2614 60%, #2A1B0E 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 222, 170, 0.45),
+    0 0 22px var(--zhusha-glow),
+    0 8px 20px rgba(0, 0, 0, 0.55);
+}
+
+.skill-rune {
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai);
+  font-size: 30px; font-weight: 900;
+  color: var(--paper);
+  background: linear-gradient(180deg, var(--zhusha-deep), #6A1A08);
+  border: 2px solid #2A1B0E;
+  margin: 8px auto 12px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 222, 170, 0.32),
+    0 4px 8px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.55);
+  transition: background 0.18s ease;
+}
+.skill-row.active .skill-rune {
+  background: linear-gradient(180deg, var(--zhusha-bright), var(--zhusha-deep));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 222, 170, 0.5),
+    0 0 14px var(--zhusha-glow);
+}
+
+.skill-info { text-align: center; }
+.skill-name {
+  font-family: var(--font-kai);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.22em; padding-left: 0.22em;
+  color: var(--paper);
+  margin-bottom: 6px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.skill-desc {
+  margin-top: 4px;
+  font-family: var(--font-kai);
+  font-size: 11px; line-height: 1.55;
+  letter-spacing: 0.06em;
+  color: var(--paper-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.skill-cost {
+  margin: 10px auto 0;
+  font-family: var(--font-kai);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  color: var(--paper);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(220, 184, 122, 0.32);
+  padding: 2px 10px;
+  display: inline-block;
+}
+
+/* === 右栏：招式秘籍水墨（detail） ====================================== */
+.detail {
+  border-left: 4px solid #2A1B0E;
+  padding: 28px 28px 32px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 184, 122, 0.2) transparent;
+  position: relative;
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(76, 52, 28, 0.10) 0px, rgba(76, 52, 28, 0.10) 1px,
+      transparent 1px, transparent 6px),
+    linear-gradient(180deg, #C99566 0%, #A07546 100%);
+}
+.detail::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 12px; right: 12px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--zhusha) 30%, var(--zhusha-bright) 50%, var(--zhusha) 70%, transparent);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+}
+.detail::after {
+  content: "";
+  position: absolute;
+  bottom: 0; left: 12px; right: 12px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--zhusha) 30%, var(--zhusha-bright) 50%, var(--zhusha) 70%, transparent);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+}
+
+.detail-title {
+  font-family: var(--font-kai);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.28em; padding-left: 0.28em;
+  color: #2A1B0E;
+  margin-bottom: 8px;
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.4);
+}
+.detail-tag {
+  font-family: var(--font-kai);
+  font-size: 12px;
+  letter-spacing: 0.32em;
+  color: var(--paper);
+  background: var(--zhusha);
+  padding: 3px 12px;
+  display: inline-block;
+  border: 1px solid #2A1B0E;
+  box-shadow: 0 0 6px var(--zhusha-glow);
+}
+.detail-divider {
+  width: 100%; height: 2px;
+  margin: 22px 0;
+  background:
+    linear-gradient(90deg, transparent 4%, rgba(76, 52, 28, 0.6) 20%, var(--zhusha) 50%, rgba(76, 52, 28, 0.6) 80%, transparent 96%);
+  box-shadow: 0 0 6px var(--zhusha-glow);
+  position: relative;
+}
+.detail-divider::before, .detail-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 8px; height: 8px;
+  background: var(--zhusha);
+  transform: translateY(-50%) rotate(45deg);
+  box-shadow: 0 0 6px var(--zhusha-glow);
+}
+.detail-divider::before { left: 0; }
+.detail-divider::after  { right: 0; }
+
+.detail-section + .detail-section { margin-top: 22px; }
+.detail-section h4 {
+  font-family: var(--font-kai);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.32em;
+  color: var(--zhusha-deep);
+  margin: 0 0 8px;
+  position: relative;
+  padding-left: 16px;
+}
+.detail-section h4::before {
+  content: "▌";
+  position: absolute;
+  left: 0; top: 0;
+  color: var(--zhusha);
+}
+.detail-section p {
+  font-family: var(--font-kai);
+  font-size: 13px;
+  line-height: 1.75;
+  color: #2A1B0E;
+  margin: 0;
+  letter-spacing: 0.06em;
+  background: rgba(255, 240, 200, 0.32);
+  padding: 10px 14px;
+  border-left: 2px solid var(--zhusha);
+}
+.detail-stats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+  margin-top: 8px;
+}
+.stat-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 6px 10px;
+  background: rgba(40, 24, 12, 0.85);
+  border-left: 2px solid var(--gold);
+}
+.stat-name {
+  font-family: var(--font-kai);
+  font-size: 12px;
+  color: rgba(255, 222, 170, 0.85);
+  letter-spacing: 0.2em;
+}
+.stat-val {
+  font-family: var(--font-mono);
+  color: var(--paper);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* === 底部 footer ======================================================= */
+.footer-bar {
+  background:
+    linear-gradient(180deg,
+      transparent 0%, rgba(0, 0, 0, 0.4) 30%,
+      #2C1A0A 50%, #4A2E16 65%, #6E4824 78%, #4A2E16 92%, #2C1A0A 100%);
+  border-top: 1px solid rgba(110, 72, 36, 0.6);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.5);
+  height: 56px;
+  pointer-events: none;
+}
+.footer-bar > * { pointer-events: auto; }
+.footer-meta {
+  font-family: var(--font-kai);
+  color: var(--paper-2);
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.footer-meta::before { content: "❖ "; color: var(--zhusha-bright); }
+.prompts {
+  display: flex; align-items: center; gap: 22px;
+}
+.prompt {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--paper-2);
+  font-family: var(--font-kai);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.key {
+  width: 26px; height: 26px;
+  border: 1.5px solid;
+  border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, rgba(20, 12, 6, 0.7), rgba(0, 0, 0, 0.5));
+  font-family: Arial, sans-serif;
+  font-size: 13px; font-weight: 700;
+}
+.key.cross    { color: #DCC288; border-color: #BC8F3A; }
+.key.circle   { color: var(--zhusha-bright); border-color: var(--zhusha); }
+.key.triangle { color: #7A8E5C; border-color: #4A6B3F; }
+.key.square   { color: #C99566; border-color: #6E4824; border-radius: 2px; }
+
+@media (max-height: 720px) {
+  .header { height: 96px; }
+  .body { top: 96px; bottom: 60px; grid-template-columns: 220px 1fr 340px; }
+  .footer-bar { height: 60px; }
+  .seal.corner-seal-2 { width: 50px; height: 50px; font-size: 26px; }
+  .school { padding: 10px 14px 10px 18px; }
+  .school-name { font-size: 19px; }
+  .tree { padding: 22px 3vw; gap: 12px; }
+  .tree-title { font-size: 24px; }
+  .skill-row { padding: 12px 12px 32px; }
+  .skill-rune { width: 48px; height: 48px; font-size: 26px; margin: 6px auto 10px; }
+  .detail { padding: 22px 22px 24px; }
+  .detail-title { font-size: 22px; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRSkills = {
+  state: {
+    activeSchoolId: "han_blade",
+    activeSkillId: "han_basic",
+    schools: [
+      { id: "han_blade", name: "汉刀", tag: "环首 · 直刃" },
+      { id: "qing_kung", name: "轻功", tag: "踏雪 · 拔身" },
+      { id: "iron_qi",   name: "铁气", tag: "御身 · 拒伤" },
+      { id: "wind_song", name: "风咏", tag: "感风 · 御风" }
+    ],
+    trees: {
+      han_blade: {
+        title: "汉刀 · 招式", hint: "三式 · 已学 二",
+        skills: [
+          { id:"han_basic", rune:"挥", name:"挥砍 · 基", cost:"〇 气", desc:"环首直刃，自上而下，朴而有力。" },
+          { id:"han_storm", rune:"乱", name:"乱风斩",   cost:"二 气", desc:"低位横扫，破盾，可清扫两人。" },
+          { id:"han_pierce",rune:"刺", name:"穿心刺",   cost:"三 气", desc:"前冲突刺，命中收尾时附带流血。" }
+        ]
+      },
+      qing_kung: {
+        title: "轻功 · 行身", hint: "二式",
+        skills: [
+          { id:"qk_step", rune:"踏", name:"踏雪步", cost:"一 气", desc:"短距瞬移，可越过陷阱。" },
+          { id:"qk_pull", rune:"拔", name:"拔身术", cost:"二 气", desc:"高跳出墙，落地无损耗。" }
+        ]
+      },
+      iron_qi: {
+        title: "铁气 · 御身", hint: "二式",
+        skills: [
+          { id:"iq_skin", rune:"御", name:"铁皮诀",  cost:"一 气", desc:"短时间内大幅减伤。" },
+          { id:"iq_root", rune:"根", name:"扎根法",  cost:"〇 气", desc:"格挡时不被击退，但移动减半。" }
+        ]
+      },
+      wind_song: {
+        title: "风咏 · 感应", hint: "一式 · 待解",
+        skills: [
+          { id:"ws_listen", rune:"聆", name:"聆风诀", cost:"〇 气", desc:"短暂显示半径内敌人位置与朝向。" }
+        ]
+      }
+    },
+    detail: {
+      han_basic: {
+        title: "挥砍 · 基", tag: "汉刀 · 入门",
+        sections: [
+          { h: "招式诀", p: "起手沉肩，刀下随气走。势出即收，不留余势。" },
+          { h: "搭配", p: "与「拔身术」连接形成腾空斩。可承「乱风斩」收尾。" }
+        ],
+        stats: [
+          { n:"伤害",   v:"38" },
+          { n:"耗气",   v:"0" },
+          { n:"出招",   v:"0.32 s" },
+          { n:"硬直",   v:"0.18 s" }
+        ]
+      },
+      han_storm: {
+        title: "乱风斩", tag: "汉刀 · 中阶",
+        sections: [{ h: "招式诀", p: "弯腰沉胯，腰带刀走，扫开两面。" }],
+        stats: [{ n:"伤害", v:"60×2" }, { n:"耗气", v:"2" }, { n:"出招", v:"0.48 s" }, { n:"硬直", v:"0.32 s" }]
+      },
+      han_pierce: {
+        title: "穿心刺", tag: "汉刀 · 待解",
+        sections: [{ h: "招式诀", p: "突进直刺，留待解锁。" }],
+        stats: [{ n:"伤害", v:"95" }, { n:"耗气", v:"3" }, { n:"出招", v:"0.55 s" }, { n:"硬直", v:"0.40 s" }]
+      },
+      qk_step: { title:"踏雪步", tag:"轻功", sections:[{h:"招式诀",p:"短距瞬移，越过陷阱。"}], stats:[{n:"距离",v:"4 m"},{n:"耗气",v:"1"},{n:"冷却",v:"2 s"}] },
+      qk_pull: { title:"拔身术", tag:"轻功", sections:[{h:"招式诀",p:"高跳越墙，落地无损耗。"}], stats:[{n:"高度",v:"3 m"},{n:"耗气",v:"2"}] },
+      iq_skin: { title:"铁皮诀", tag:"铁气", sections:[{h:"招式诀",p:"短时间大幅减伤。"}], stats:[{n:"减伤",v:"60%"},{n:"持续",v:"4 s"},{n:"耗气",v:"1"}] },
+      iq_root: { title:"扎根法", tag:"铁气", sections:[{h:"招式诀",p:"格挡不被击退，但移动减半。"}], stats:[{n:"位移抗性",v:"100%"},{n:"移动",v:"-50%"}] },
+      ws_listen: { title:"聆风诀", tag:"风咏 · 待解", sections:[{h:"招式诀",p:"显示半径内敌人位置。"}], stats:[{n:"半径",v:"12 m"},{n:"持续",v:"3 s"}] }
+    }
+  },
+
+  setSchool(id) {
+    if (!this.state.trees[id]) return;
+    this.state.activeSchoolId = id;
+    const firstSkill = this.state.trees[id].skills[0];
+    if (firstSkill) this.state.activeSkillId = firstSkill.id;
+    this.render();
+  },
+  setSkill(id) {
+    if (!this.state.detail[id]) return;
+    this.state.activeSkillId = id;
+    this.renderTree(); this.renderDetail();
+    SRBridge.send("skill-select", { schoolId: this.state.activeSchoolId, skillId: id });
+  },
+  cycleSchool(delta) {
+    const list = this.state.schools;
+    const idx = list.findIndex(s => s.id === this.state.activeSchoolId);
+    this.setSchool(list[(idx + delta + list.length) % list.length].id);
+  },
+  back()  { SRBridge.back("startup-web-skills"); },
+
+  renderList() {
+    const list = document.querySelector(".list");
+    list.innerHTML = "";
+    this.state.schools.forEach(s => {
+      const node = document.createElement("div");
+      node.className = "school" + (s.id === this.state.activeSchoolId ? " active" : "");
+      node.innerHTML = `<div class="school-name">${s.name}</div><div class="school-tag">${s.tag}</div>`;
+      node.addEventListener("click", () => this.setSchool(s.id));
+      list.appendChild(node);
+    });
+  },
+  renderTree() {
+    const tree = document.querySelector(".tree");
+    tree.innerHTML = "";
+    const data = this.state.trees[this.state.activeSchoolId];
+    if (!data) return;
+    const head = document.createElement("div");
+    head.className = "tree-head";
+    head.innerHTML = `<div class="tree-title">${data.title}</div><div class="tree-hint">${data.hint}</div>`;
+    tree.appendChild(head);
+
+    data.skills.forEach(skill => {
+      const row = document.createElement("div");
+      row.className = "skill-row" + (skill.id === this.state.activeSkillId ? " active" : "");
+      row.innerHTML = `
+        <div class="skill-rune">${skill.rune}</div>
+        <div class="skill-info">
+          <div class="skill-name">${skill.name}</div>
+          <div class="skill-desc">${skill.desc || ""}</div>
+        </div>
+        <div class="skill-cost">${skill.cost || ""}</div>`;
+      row.addEventListener("click", () => this.setSkill(skill.id));
+      tree.appendChild(row);
+    });
+  },
+  renderDetail() {
+    const detail = document.querySelector(".detail");
+    detail.innerHTML = "";
+    const d = this.state.detail[this.state.activeSkillId];
+    if (!d) return;
+    const head = document.createElement("div");
+    head.innerHTML = `<div class="detail-title">${d.title}</div><div class="detail-tag">${d.tag}</div><div class="detail-divider"></div>`;
+    detail.appendChild(head);
+
+    d.sections.forEach(sec => {
+      const node = document.createElement("div");
+      node.className = "detail-section";
+      node.innerHTML = `<h4>${sec.h}</h4><p>${sec.p}</p>`;
+      detail.appendChild(node);
+    });
+    if (d.stats && d.stats.length) {
+      const stats = document.createElement("div");
+      stats.className = "detail-section";
+      stats.innerHTML = `<h4>诸数</h4><div class="detail-stats">` +
+        d.stats.map(s => `<div class="stat-row"><span class="stat-name">${s.n}</span><span class="stat-val">${s.v}</span></div>`).join("") +
+        `</div>`;
+      detail.appendChild(stats);
+    }
+  },
+  renderBreadcrumb() {
+    const cur = this.state.schools.find(s => s.id === this.state.activeSchoolId);
+    document.querySelector(".bc-path .cur").textContent = cur ? cur.name : "";
+  },
+  render() {
+    this.renderList(); this.renderTree(); this.renderDetail(); this.renderBreadcrumb();
+  }
+};
+
+ue.interface.setSkillsData = function(data) { /* future hook */ window.SRSkills.render(); };
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRSkills.back(); }
+  else if (e.key === "Tab")  { e.preventDefault(); SRSkills.cycleSchool(e.shiftKey ? -1 : 1); }
+  else if (e.key === "ArrowUp"   || e.key === "w" || e.key === "W") { e.preventDefault(); SRSkills.cycleSchool(-1); }
+  else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); SRSkills.cycleSchool(1); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRSkills.render();
+  SRBridge.ready("startup-web-skills");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="header">
+    <div class="bc-kanji">武學</div>
+    <div class="bc-path"><span>主页</span><span class="sep">·</span><span>武学</span><span class="sep">·</span><span class="cur">汉刀</span></div>
+  </div>
+  <div class="seal corner-seal-2">武</div>
+
+  <div class="body">
+    <div class="list"></div>
+    <div class="tree"></div>
+    <div class="detail"></div>
+  </div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta">武學 · DEV 预览 · 二〇二六</div>
+    <div class="prompts">
+      <div class="prompt"><span class="key square">□</span>切换流派</div>
+      <div class="prompt"><span class="key cross">✕</span>选定</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+    </div>
+  </footer>
+</main>
+</body>
+</html>
+

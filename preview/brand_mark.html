@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Brand Mark · 一介</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin:0; padding:0; }
+  body {
+    width: 1100px; height: 720px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 26vw 18vh at 51% 32%, rgba(255,255,255,.92), transparent 72%),
+      radial-gradient(ellipse 48vw 36vh at 51% 56%, rgba(213,225,238,.44), transparent 78%),
+      radial-gradient(ellipse 20vw 16vh at 9% 94%, rgba(115,132,145,.30), transparent 72%),
+      radial-gradient(ellipse 24vw 20vh at 86% 91%, rgba(190,202,214,.24), transparent 74%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='71'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 48%, #DCE6EF 100%);
+    color: var(--ink-1);
+    position: relative;
+    font-family: var(--font-kai);
+  }
+  /* mountain silhouette */
+  body::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0; height: 31vh;
+    pointer-events: none;
+    background:
+      linear-gradient(0deg, rgba(36,43,48,.30), transparent 65%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 420' preserveAspectRatio='none'><path d='M0 330 C160 270 260 355 410 300 C520 260 640 350 790 300 C940 245 1030 345 1200 292 C1370 240 1480 335 1600 278 L1600 420 L0 420 Z' fill='%233A4146' opacity='.32'/><path d='M370 310 C445 265 512 285 610 250 C548 316 470 333 370 310 Z' fill='%231D2225' opacity='.28'/><path d='M0 405 C250 360 460 393 700 350 C980 302 1210 388 1600 330 L1600 420 L0 420 Z' fill='%23080A0B' opacity='.20'/></svg>");
+  }
+  /* birds */
+  .bird { position: absolute; width: 28px; height: 12px; }
+  .bird::before, .bird::after {
+    content: ""; position: absolute; top: 0; width: 14px; height: 12px;
+    border: 1.5px solid rgba(0,0,0,0.62); border-radius: 50% 50% 0 0;
+    border-bottom: none; transform-origin: bottom;
+  }
+  .bird::before { left: 0; transform: rotate(-22deg); }
+  .bird::after  { right: 0; transform: rotate(22deg); }
+  .b1 { top: 90px; left: 36%; transform: rotate(-3deg); }
+  .b2 { top: 130px; left: 48%; transform: rotate(2deg) scale(0.8); }
+  .b3 { top: 110px; left: 56%; transform: rotate(-1deg) scale(0.9); }
+
+  .head-line {
+    position: absolute; top: 36px; left: 56px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.32em;
+    color: var(--paper-mute); text-transform: uppercase;
+  }
+
+  .stage-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -54%);
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  /* vertical title */
+  .title-stack { position: relative; padding: 18px 36px 24px; }
+  .title-stack::before {
+    /* black brushstroke spear */
+    content: "";
+    position: absolute;
+    top: 0; left: 50%;
+    width: 110px; height: 320px;
+    transform: translateX(-50%) rotate(-2deg);
+    background: linear-gradient(180deg, #060708 0%, #1A1F23 60%, rgba(20, 24, 28, 0.55) 100%);
+    border-radius: 70% 50% 60% 42%;
+    box-shadow: 0 24px 48px rgba(8, 12, 16, 0.45), inset -8px 0 16px rgba(255,255,255,0.04);
+    z-index: 0;
+  }
+  .title-vertical {
+    position: relative; z-index: 1;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: var(--font-kai);
+    font-size: 148px;
+    font-weight: 900;
+    letter-spacing: 0.10em;
+    color: #F8FBFF;
+    line-height: 0.96;
+    transform: rotate(-2deg);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.4), 0 18px 32px rgba(0,0,0,0.5);
+  }
+  .seal {
+    position: absolute;
+    bottom: -8px; right: -8px;
+    width: 56px; height: 56px;
+    background: var(--zhusha);
+    color: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-kai);
+    font-size: 26px; font-weight: 900;
+    transform: rotate(-4deg);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.18), 0 6px 14px rgba(0,0,0,0.32);
+    z-index: 2;
+  }
+  .seal::before {
+    content: ""; position: absolute; inset: 4px; border: 1px solid rgba(255,255,255,0.25);
+  }
+
+  .subtitle {
+    margin-top: 28px;
+    font-family: var(--font-kai);
+    font-size: 28px; font-weight: 900;
+    letter-spacing: 0.32em;
+    color: var(--ink-black);
+    text-shadow: 0 1px 0 rgba(255,255,255,0.42);
+  }
+  .tag {
+    margin-top: 14px;
+    font-family: var(--font-kai);
+    font-size: 16px;
+    letter-spacing: 0.34em;
+    color: rgba(5,7,8,0.62);
+  }
+  .build {
+    position: absolute; bottom: 22px; left: 56px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.20em;
+    color: var(--paper-mute);
+  }
+  .build-r {
+    position: absolute; bottom: 22px; right: 56px;
+    font-family: var(--font-kai); font-size: 13px; letter-spacing: 0.32em;
+    color: var(--paper-mute);
+  }
+</style>
+</head>
+<body>
+  <div class="head-line">brand mark / ink theme</div>
+  <div class="bird b1"></div><div class="bird b2"></div><div class="bird b3"></div>
+
+  <div class="stage-center">
+    <div class="title-stack">
+      <div class="title-vertical">一介</div>
+      <div class="seal">介</div>
+    </div>
+    <div class="subtitle">寒 土 孤 山</div>
+    <div class="tag">凡人的宁静 · 时代的碾碎</div>
+  </div>
+
+  <div class="build">YIJIE / HANWRAITH · 〇·壹·〇</div>
+  <div class="build-r">单机 · 三国 · 水墨</div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>SR Video · 独立 codec / 路径自检</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #111; color: #eee; margin: 0; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: 360px 1fr; gap: 16px; }
+  video { width: 100%; max-height: 360px; background: #000; border: 1px solid #444; }
+  pre { background: #000; padding: 12px; border: 1px solid #333; max-height: 80vh; overflow: auto;
+        font-family: Consolas, monospace; font-size: 12px; line-height: 1.45; white-space: pre-wrap; }
+  .ok  { color: #6ec76e; }
+  .bad { color: #d8693a; }
+  .mute { color: #888; }
+  button { background: #2a2a2a; color: #eee; border: 1px solid #444; padding: 6px 10px; cursor: pointer; }
+  button:hover { background: #3a3a3a; }
+</style>
+</head>
+<body>
+<h1>SR Video · 独立 codec / 路径自检
+  <button onclick="reload()">重新加载</button>
+</h1>
+<div class="grid">
+  <div>
+    <video id="v" controls preload="auto" playsinline></video>
+  </div>
+  <pre id="log"></pre>
+</div>
+<script>
+// 双击此页可在任意浏览器（Chrome/Edge/CEF）跑。两个目的：
+// 1) Chrome/Edge 能播 → 文件 + 路径 OK，仅 CEF codec 不行 → 转 webm/VP9 即可
+// 2) Chrome/Edge 也播不了 → 文件本身坏，先 ffprobe 排查
+//
+// CEF 标准 build 不带 proprietary codecs，canPlayType("video/mp4; codecs=avc1.*") 返回 ""，H.264 直接放不了。
+const log = (msg, cls) => {
+  const el = document.getElementById("log");
+  const span = cls ? `<span class="${cls}">${msg}</span>` : msg;
+  el.innerHTML += span + "\n";
+};
+
+function probe() {
+  const v = document.getElementById("v");
+  const tests = [
+    ["video/mp4",                              "MP4 容器（无 codec 限定）"],
+    ["video/mp4; codecs=\"avc1.42E01E\"",      "MP4 + H.264 baseline（占位 mp4 用的）"],
+    ["video/mp4; codecs=\"avc1.42E01E, mp4a.40.2\"", "MP4 + H.264 + AAC"],
+    ["video/webm",                             "WebM 容器（无 codec 限定）"],
+    ["video/webm; codecs=\"vp9\"",             "WebM + VP9（CEF 推荐转码目标）"],
+    ["video/webm; codecs=\"vp8, vorbis\"",     "WebM + VP8 + Vorbis"],
+    ["video/ogg",                              "Ogg/Theora（CEF 也支持）"],
+  ];
+  log("=== HTMLMediaElement.canPlayType() 编码探针 ===", "mute");
+  for (const [type, label] of tests) {
+    const r = v.canPlayType(type);
+    const cls = r === "probably" ? "ok" : (r === "maybe" ? "ok" : "bad");
+    log(`  [${(r || "<空 = 不支持>").padEnd(10)}] ${label}`, cls);
+  }
+  log("");
+  log("=== UA / 平台信息 ===", "mute");
+  log("  userAgent: " + navigator.userAgent);
+  log("  document.baseURI: " + document.baseURI);
+  log("");
+}
+
+function attachVideoEvents() {
+  const v = document.getElementById("v");
+  ["loadstart", "loadedmetadata", "loadeddata", "canplay", "canplaythrough", "playing", "stalled", "suspend", "ended"].forEach((ev) => {
+    v.addEventListener(ev, () => log(`  ${ev}  readyState=${v.readyState} networkState=${v.networkState}`, "ok"));
+  });
+  v.addEventListener("error", () => {
+    const codes = { 1: "ABORTED", 2: "NETWORK", 3: "DECODE", 4: "SRC_NOT_SUPPORTED" };
+    const e = v.error;
+    log(`  error: code=${e ? e.code : "?"} (${e ? codes[e.code] : "?"}) msg='${e ? e.message : ""}'`, "bad");
+    log(`  src='${v.currentSrc || v.src}' networkState=${v.networkState} readyState=${v.readyState}`, "bad");
+  });
+}
+
+function loadVideo(url) {
+  const v = document.getElementById("v");
+  log(`=== 加载 url='${url}' ===`, "mute");
+  log(`  resolves to: ${new URL(url, document.baseURI).href}`);
+  v.src = url;
+  v.load();
+}
+
+function reload() {
+  document.getElementById("log").innerHTML = "";
+  probe();
+  loadVideo("assets/Beat01_Shot01_linger.mp4");
+}
+
+attachVideoEvents();
+reload();
+</script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Components · 一介</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 0; }
+  body {
+    width: 1180px; min-height: 1100px;
+    padding: 48px 56px 80px;
+    background:
+      radial-gradient(ellipse 60vw 30vh at 50% 30%, rgba(255,255,255,.85), transparent 72%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='9'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 48%, #DCE6EF 100%);
+    color: var(--ink-1);
+  }
+  .head { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.32em; color: var(--paper-mute); text-transform: uppercase; }
+  h2 { font-family: var(--font-kai); font-weight: 900; font-size: 28px; letter-spacing: 0.22em; margin: 4px 0 24px; color: var(--ink-black); }
+  h3 { font-family: var(--font-kai); font-weight: 900; font-size: 16px; letter-spacing: 0.24em; color: var(--paper-mute); margin: 0 0 16px; text-transform: uppercase; }
+  .section { margin-bottom: 44px; }
+
+  /* === Menu rows (lobby) ============================================ */
+  .menu-row { display: flex; flex-direction: column; gap: 10px; max-width: 480px; }
+  .menu-item {
+    display: flex; align-items: baseline; gap: 18px;
+    padding: 12px 18px;
+    background: rgba(248,251,255,0.34);
+    border: 1px solid rgba(38,45,51,0.14);
+    backdrop-filter: blur(8px) saturate(1.05);
+    cursor: pointer;
+    transition: all 160ms var(--ease-out);
+  }
+  .menu-item:hover {
+    background: rgba(255,255,255,0.66);
+    transform: translateX(-4px);
+  }
+  .menu-item.active {
+    background: rgba(255,255,255,0.78);
+    box-shadow: inset 0 -2px 0 rgba(5,6,7,0.38);
+  }
+  .menu-item .label {
+    font-family: var(--font-kai);
+    font-size: 22px; font-weight: 900;
+    letter-spacing: 0.24em;
+    color: var(--ink-black);
+  }
+  .menu-item.active .label { letter-spacing: 0.28em; }
+  .menu-item .hint {
+    font-family: var(--font-kai); font-size: 12px;
+    letter-spacing: 0.18em;
+    color: var(--paper-mute);
+  }
+
+  /* === Tabs (page shell) ============================================ */
+  .tabs {
+    display: inline-flex; gap: 0;
+    background: rgba(248,251,255,0.42);
+    border: 1px solid rgba(38,45,51,0.14);
+    backdrop-filter: blur(8px);
+    padding: 4px;
+  }
+  .tab {
+    padding: 7px 18px 9px;
+    font-family: var(--font-kai); font-size: 15px; font-weight: 700;
+    letter-spacing: 0.22em;
+    color: rgba(5,7,8,0.58);
+    cursor: pointer;
+    position: relative;
+    transition: all 140ms var(--ease-out);
+  }
+  .tab:hover { color: var(--ink-black); }
+  .tab.active {
+    background: rgba(255,255,255,0.86);
+    color: var(--ink-black);
+    box-shadow: inset 0 -2px 0 rgba(5,6,7,0.78);
+  }
+
+  /* === Buttons / kbd capsules ======================================= */
+  .btn-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    padding: 10px 22px;
+    font-family: var(--font-kai); font-size: 15px; font-weight: 700;
+    letter-spacing: 0.24em;
+    color: var(--ink-black);
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(5,6,7,0.32);
+    cursor: pointer;
+    transition: all 140ms var(--ease-out);
+  }
+  .btn:hover { background: var(--ink-black); color: var(--paper); }
+  .btn.primary { background: var(--ink-black); color: var(--paper); border-color: var(--ink-black); }
+  .btn.primary:hover { background: rgba(0,0,0,0.86); }
+  .btn.danger { background: var(--zhusha); color: var(--paper); border-color: var(--zhusha-deep); }
+  .btn.ghost { background: transparent; }
+
+  /* PS5 face buttons */
+  .key {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.32), 0 2px 4px rgba(0,0,0,0.2);
+  }
+  .key.cross    { background: #2A6BD0; color: white; }
+  .key.circle   { background: #C94A3A; color: white; }
+  .key.triangle { background: #2BA589; color: white; }
+  .key.square   { background: #8E5BD8; color: white; }
+  /* Latin shoulder pill */
+  .tk-key {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 38px; height: 26px; padding: 0 10px;
+    border-radius: 18px;
+    font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.10em;
+    color: var(--ink-black);
+    background: rgba(255,255,255,0.78);
+    border: 1.5px solid rgba(5,6,7,0.36);
+  }
+  .prompt {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-kai); font-size: 14px;
+    letter-spacing: 0.22em;
+    color: rgba(5,7,8,0.74);
+  }
+
+  /* === Vermilion seal stamp ========================================= */
+  .seal {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px;
+    background: var(--zhusha);
+    color: var(--paper);
+    font-family: var(--font-kai); font-size: 24px; font-weight: 900;
+    transform: rotate(-3deg);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.18), 0 4px 10px rgba(0,0,0,0.32);
+    position: relative;
+  }
+  .seal::before {
+    content: ""; position: absolute; inset: 4px; border: 1px solid rgba(255,255,255,0.22);
+  }
+
+  /* === Cards (inventory item rows) ================================== */
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 720px; }
+  .item-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.62);
+    border: 1px solid rgba(38,45,51,0.14);
+    backdrop-filter: blur(6px);
+  }
+  .item-row.active { box-shadow: inset 0 -2px 0 rgba(5,6,7,0.42); background: rgba(255,255,255,0.86); }
+  .item-glyph {
+    width: 40px; height: 40px;
+    background: var(--ink-1);
+    color: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-kai); font-size: 18px; font-weight: 900;
+  }
+  .item-row .name { font-family: var(--font-kai); font-size: 15px; font-weight: 900; letter-spacing: 0.16em; color: var(--ink-black); }
+  .item-row .meta { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; color: var(--paper-mute); margin-top: 2px; }
+  .item-row .qty { margin-left: auto; font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.10em; color: var(--ink-1); }
+
+  /* === Save toast =================================================== */
+  .save-toast {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(38,45,51,0.18);
+    box-shadow: 0 18px 52px rgba(96,115,132,0.18), inset 0 0 0 1px rgba(255,255,255,0.4);
+    backdrop-filter: blur(10px);
+  }
+  .save-toast .save-mark {
+    width: 8px; height: 8px; background: var(--zhusha); border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(138,46,40,0.18);
+  }
+  .save-toast .t-label { font-family: var(--font-kai); font-size: 14px; font-weight: 900; letter-spacing: 0.22em; color: var(--ink-black); }
+  .save-toast .t-meta  { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.20em; color: var(--paper-mute); }
+
+  /* === Slider (settings) ============================================ */
+  .slider-row {
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.62);
+    border: 1px solid rgba(38,45,51,0.14);
+    max-width: 480px;
+  }
+  .slider-row .lbl { font-family: var(--font-kai); font-size: 14px; font-weight: 700; letter-spacing: 0.22em; min-width: 80px; color: var(--ink-black); }
+  .track { flex: 1; height: 4px; background: rgba(35,43,50,0.18); position: relative; }
+  .fill  { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink-black); }
+  .knob  { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background: var(--paper); border: 1.5px solid var(--ink-black); }
+  .v { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.16em; color: var(--ink-1); min-width: 36px; text-align: right; }
+
+  /* === Modal ========================================================= */
+  .modal {
+    width: 480px;
+    background: rgba(255,255,255,0.86);
+    border: 1px solid rgba(5,6,7,0.32);
+    box-shadow: 0 30px 88px rgba(87,104,119,0.18), inset 0 0 0 1px rgba(255,255,255,0.48);
+    backdrop-filter: blur(14px);
+    padding: 28px 32px 22px;
+  }
+  .modal h4 { font-family: var(--font-kai); font-size: 22px; font-weight: 900; letter-spacing: 0.32em; margin: 0 0 8px; color: var(--ink-black); }
+  .modal p  { font-family: var(--font-kai); font-size: 14px; letter-spacing: 0.18em; line-height: 1.7; color: rgba(5,7,8,0.7); margin: 0 0 20px; }
+  .modal .actions { display: flex; gap: 12px; }
+  .modal .actions .btn { flex: 1; }
+</style>
+</head>
+<body>
+  <div class="head">一介 / components · ink theme</div>
+  <h2>组 件 · 纸上之物</h2>
+
+  <div class="section">
+    <h3>Menu rows · 浮纸条</h3>
+    <div class="menu-row">
+      <div class="menu-item active">
+        <span class="label">继续旅途</span>
+        <span class="hint">第三幕 · 山村回忆</span>
+      </div>
+      <div class="menu-item">
+        <span class="label">新的开始</span>
+        <span class="hint">从头再来</span>
+      </div>
+      <div class="menu-item">
+        <span class="label">载入存档</span>
+        <span class="hint">7 个存档</span>
+      </div>
+      <div class="menu-item">
+        <span class="label">设　定</span>
+        <span class="hint">画面 · 声音 · 操作</span>
+      </div>
+      <div class="menu-item">
+        <span class="label">退　出</span>
+        <span class="hint">离开寒山</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Tabs · 页眉</h3>
+    <div class="tabs">
+      <div class="tab active">地图</div>
+      <div class="tab">日志</div>
+      <div class="tab">行囊</div>
+      <div class="tab">武学</div>
+      <div class="tab">收藏</div>
+      <div class="tab">议政厅</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Buttons · 行止</h3>
+    <div class="btn-row">
+      <button class="btn primary">继 续</button>
+      <button class="btn">载入存档</button>
+      <button class="btn ghost">取 消</button>
+      <button class="btn danger">离 开</button>
+    </div>
+    <div class="btn-row" style="margin-top: 18px;">
+      <span class="prompt"><span class="key cross">✕</span> 确 认</span>
+      <span class="prompt"><span class="key circle">○</span> 返 回</span>
+      <span class="prompt"><span class="key triangle">△</span> 阅 览</span>
+      <span class="prompt"><span class="key square">□</span> 详 情</span>
+      <span style="width:18px;"></span>
+      <span class="prompt"><span class="tk-key">L1</span> 切 章</span>
+      <span class="prompt"><span class="tk-key">R2</span> 展 开</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Inventory rows · 行囊</h3>
+    <div class="card-grid">
+      <div class="item-row active">
+        <div class="item-glyph">刀</div>
+        <div>
+          <div class="name">寒 江 雪</div>
+          <div class="meta">DAO · LV.3 · 章一所得</div>
+        </div>
+        <div class="qty">×1</div>
+      </div>
+      <div class="item-row">
+        <div class="item-glyph">玉</div>
+        <div>
+          <div class="name">残 玉 佩</div>
+          <div class="meta">PEI · 信物 · 启幕</div>
+        </div>
+        <div class="qty">×1</div>
+      </div>
+      <div class="item-row">
+        <div class="item-glyph">药</div>
+        <div>
+          <div class="name">续 命 丹</div>
+          <div class="meta">DAN · 消耗 · 集市</div>
+        </div>
+        <div class="qty">×9</div>
+      </div>
+      <div class="item-row">
+        <div class="item-glyph">书</div>
+        <div>
+          <div class="name">兵 书 残 卷</div>
+          <div class="meta">SHU · 阅览可得</div>
+        </div>
+        <div class="qty">×1</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Sliders · 议政</h3>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="slider-row">
+        <span class="lbl">画 面</span>
+        <div class="track"><div class="fill" style="width: 72%;"></div><div class="knob" style="left: 72%;"></div></div>
+        <span class="v">72</span>
+      </div>
+      <div class="slider-row">
+        <span class="lbl">音 量</span>
+        <div class="track"><div class="fill" style="width: 48%;"></div><div class="knob" style="left: 48%;"></div></div>
+        <span class="v">48</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Save toast · 自动存档</h3>
+    <div class="save-toast">
+      <div class="save-mark"></div>
+      <div>
+        <div class="t-label">自 动 存 档</div>
+        <div class="t-meta">CHAPTER 03 · 山村回忆 · 二〇二六/四/二四 · 廿二时四一分</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Seals · 朱印</h3>
+    <div class="btn-row">
+      <div class="seal">介</div>
+      <div class="seal" style="background: var(--zhusha-deep);">武</div>
+      <div class="seal" style="background: var(--zhusha-bright);">破</div>
+      <div class="seal" style="width: 40px; height: 40px; font-size: 18px;">章</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Modal · 暂离寒山？</h3>
+    <div class="modal">
+      <h4>暂 离 寒 山 ？</h4>
+      <p>雪声未停，墨迹已干。<br>自动存档会保留此刻；若再返回，仍是此处。</p>
+      <div class="actions">
+        <button class="btn">留　下</button>
+        <button class="btn primary">离　开</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

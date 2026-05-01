@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · Ink 水墨</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+/* === Ink Reference · 冷白宣纸 / 黑墨剑痕 / 留白 =========================
+ * 严格参考用户给出的“剑来”水墨图：冷白雪宣纸、中央竖向大字、黑墨剑形主笔、
+ * 小篆朱印、远处飞鸟、底部淡墨山水/亭角；禁止暖木、虎符、赛博霓虹。
+ * 协议契约不变：.profile/.save-hint/.title-wrap/.menu 等 selector 与 SRLogin 保留。
+ * ======================================================================== */
+.stage {
+  color: var(--ink-black);
+  background:
+    radial-gradient(ellipse 28vw 20vh at 44% 24%, rgba(255,255,255,0.88), transparent 72%),
+    radial-gradient(ellipse 38vw 30vh at 49% 54%, rgba(222,231,241,0.54), transparent 78%),
+    radial-gradient(ellipse 24vw 18vh at 9% 94%, rgba(115,130,142,0.40), transparent 72%),
+    radial-gradient(ellipse 28vw 18vh at 86% 90%, rgba(176,189,201,0.34), transparent 76%),
+    linear-gradient(90deg, rgba(225,233,242,0.18), transparent 16%, transparent 74%, rgba(180,193,205,0.16)),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='17'/><feColorMatrix values='0 0 0 0 0.63 0 0 0 0 0.68 0 0 0 0 0.74 0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+    linear-gradient(180deg, #F2F6FB 0%, #EAF0F7 42%, #DDE6EF 100%);
+}
+.stage::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(circle 1.2px at 8% 20%, rgba(255,255,255,0.86), transparent 72%),
+    radial-gradient(circle 1px at 88% 8%, rgba(255,255,255,0.72), transparent 72%),
+    radial-gradient(circle 1.4px at 91% 29%, rgba(255,255,255,0.86), transparent 72%),
+    radial-gradient(circle 1px at 5% 83%, rgba(255,255,255,0.72), transparent 72%),
+    radial-gradient(circle 1.2px at 74% 92%, rgba(255,255,255,0.82), transparent 72%),
+    repeating-radial-gradient(circle at 100% 19%, rgba(255,255,255,0.45) 0 1px, transparent 1px 14px);
+  opacity: 0.78;
+}
+.stage::after {
+  content: "";
+  position: absolute; inset: auto 0 0 0;
+  height: 31vh;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    linear-gradient(0deg, rgba(40,45,48,0.33), transparent 64%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 420' preserveAspectRatio='none'><path d='M0 330 C160 270 260 355 410 300 C520 260 640 350 790 300 C940 245 1030 345 1200 292 C1370 240 1480 335 1600 278 L1600 420 L0 420 Z' fill='%233A4146' opacity='.36'/><path d='M370 310 C445 265 512 285 610 250 C548 316 470 333 370 310 Z' fill='%231D2225' opacity='.32'/><path d='M0 405 C250 360 460 393 700 350 C980 302 1210 388 1600 330 L1600 420 L0 420 Z' fill='%23080A0B' opacity='.22'/><path d='M92 382 L130 338 L170 382 Z M111 365 L111 420 L124 420 L124 365 Z' fill='%23080A0B' opacity='.28'/></svg>");
+  filter: blur(0.1px);
+}
+.mountains, .moon, .hero { display: none; }
+.vignette {
+  position:absolute; inset:0; pointer-events:none; z-index:4;
+  background:
+    radial-gradient(ellipse 74% 80% at 50% 44%, transparent 48%, rgba(138,154,168,0.22) 100%),
+    linear-gradient(90deg, rgba(165,181,194,0.10), transparent 14%, transparent 84%, rgba(138,154,168,0.10));
+}
+.grain {
+  position:absolute; inset:0; pointer-events:none; z-index:5; opacity:.13;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' seed='23'/><feColorMatrix values='0 0 0 0 0.72 0 0 0 0 0.78 0 0 0 0 0.84 0 0 0 0.22 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+.ink-birds {
+  position:absolute; top:6vh; left:50%; width:430px; height:92px; transform:translateX(-50%); z-index:6; pointer-events:none; opacity:.42;
+}
+.ink-birds i { position:absolute; width:54px; height:20px; }
+.ink-birds i::before, .ink-birds i::after {
+  content:""; position:absolute; top:10px; width:30px; height:10px;
+  border-top:4px solid rgba(25,31,35,.45); border-radius:50% 50% 0 0;
+}
+.ink-birds i::before { left:0; transform:rotate(18deg); }
+.ink-birds i::after { right:0; transform:rotate(-18deg); }
+.ink-birds i:nth-child(1){ left:18px; top:24px; transform:scale(.58); opacity:.62; }
+.ink-birds i:nth-child(2){ left:138px; top:38px; transform:scale(.92); opacity:.48; }
+.ink-birds i:nth-child(3){ right:38px; top:9px; transform:scale(1.08); opacity:.40; }
+.leaves { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:7; }
+.leaf { position:absolute; top:-8vh; width:9px; height:9px; opacity:0; filter:none; animation: leaf-fall var(--fall-dur, 16s) linear infinite; animation-delay:var(--fall-delay,0s); }
+.leaf-sway { display:block; width:100%; height:100%; animation: leaf-sway var(--sway-dur, 5s) ease-in-out infinite alternate; animation-delay:var(--sway-delay,0s); }
+.leaf-spin { display:block; width:100%; height:100%; transform:scale(var(--leaf-scale,1)); animation: leaf-spin var(--spin-dur, 10s) linear infinite; }
+.leaf-spin svg { width:100%; height:100%; display:block; opacity:.72; }
+@keyframes leaf-fall { 0%{ transform:translate3d(0,0,0); opacity:0;} 12%{opacity:.58;} 86%{opacity:.42;} 100%{ transform:translate3d(0,116vh,0); opacity:0;} }
+@keyframes leaf-sway { from{ transform:translate3d(calc(var(--sway,24px)*-1),0,0);} to{ transform:translate3d(var(--sway,24px),0,0);} }
+@keyframes leaf-spin { from{ transform:scale(var(--leaf-scale,1)) rotate(var(--rot-from,0deg));} to{ transform:scale(var(--leaf-scale,1)) rotate(calc(var(--rot-from,0deg) + 160deg));} }
+.profile, .save-hint {
+  z-index:16; position:absolute;
+  color:rgba(23,29,33,.80);
+  background:linear-gradient(180deg, rgba(249,251,254,.68), rgba(241,246,251,.54));
+  border:1px solid rgba(36,44,50,.14);
+  box-shadow:0 20px 48px rgba(90,108,123,.12), inset 0 0 0 1px rgba(255,255,255,.48);
+  backdrop-filter: blur(8px) saturate(1.06);
+}
+.profile { top:max(34px, 5vh); left:max(56px, 4.4vw); display:flex; align-items:center; gap:14px; padding:10px 16px; }
+.avatar {
+  width:42px; height:42px; display:flex; align-items:center; justify-content:center;
+  border:2px solid rgba(31,37,41,.44); color:rgba(20,24,27,.72);
+  font-size:24px; font-weight:900; background:rgba(255,255,255,.22);
+}
+.profile-name { font-size:17px; letter-spacing:.32em; color:rgba(12,15,17,.86); }
+.profile-tag { margin-top:3px; font-family:var(--font-mono); font-size:9px; letter-spacing:.24em; color:rgba(59,69,78,.70); }
+.save-hint { top:max(34px, 5vh); right:max(56px, 4.4vw); max-width:260px; padding:12px 16px; text-align:left; }
+.save-tag { font-size:13px; letter-spacing:.36em; color:rgba(17,21,24,.82); }
+.save-where { margin-top:6px; font-size:13px; letter-spacing:.14em; line-height:1.55; color:rgba(38,47,54,.72); }
+.save-time { margin-top:6px; font-family:var(--font-mono); font-size:9px; letter-spacing:.22em; color:rgba(73,85,96,.60); }
+.title-wrap {
+  position:absolute; left:45%; top:15.5vh; transform:translateX(-50%); z-index:14;
+  width:min(40vw, 540px); height:48vh; min-height:340px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; pointer-events:none;
+}
+.title-wrap::before {
+  content:""; position:absolute; left:57%; top:10%; width:22px; height:82%; z-index:-1;
+  background:linear-gradient(180deg, rgba(13,15,17,.92), rgba(0,0,0,.98) 52%, rgba(17,19,20,.94));
+  border-radius:70% 50% 60% 42%;
+  transform:rotate(.5deg); filter:drop-shadow(10px 18px 12px rgba(36,45,52,.28));
+}
+.title-wrap::after {
+  content:""; position:absolute; left:46%; bottom:1.5%; width:148px; height:18px; z-index:-1;
+  background:
+    radial-gradient(ellipse at 18% 60%, rgba(5,6,7,.32), transparent 62%),
+    linear-gradient(7deg, transparent 0 22%, rgba(5,6,7,.36) 34% 48%, transparent 66%);
+  filter:blur(2.4px); transform:rotate(-3deg); opacity:.38;
+}
+.title-main {
+  /* BUGFIX: do not use negative letter-spacing in vertical Chinese; CEF will
+   * collapse “一介” into an unreadable stack on some DPI/resolution settings. */
+  font-size:clamp(88px, 8.8vw, 148px); line-height:1.02; letter-spacing:.10em;
+  color:rgba(8,10,11,.92); font-weight:900; writing-mode:vertical-rl; text-orientation:upright;
+  text-shadow:0 2px 0 rgba(255,255,255,.24), 0 22px 36px rgba(68,84,97,.28);
+  transform:translateX(-24px) rotate(-2deg);
+  filter:url(#none);
+}
+.title-sub {
+  position:absolute; left:14%; bottom:15%; writing-mode:vertical-rl; text-orientation:upright;
+  color:rgba(12,15,17,.80); font-size:clamp(20px, 1.9vw, 30px); line-height:1.4;
+  letter-spacing:.26em; font-weight:700;
+}
+.title-divider { display:none; }
+.title-tagline {
+  position:absolute; left:3%; bottom:10%; writing-mode:vertical-rl; text-orientation:upright;
+  color:rgba(18,22,24,.72); font-size:clamp(12px, 1vw, 16px); letter-spacing:.22em; line-height:1.72;
+}
+.corner-seal {
+  position:absolute; left:54.5%; top:25.5vh; width:42px; height:68px; z-index:15;
+  transform:rotate(-1deg); border:2px solid rgba(42,48,52,.55);
+  color:rgba(20,24,26,.70); background:rgba(235,240,246,.42);
+  font-size:16px; writing-mode:vertical-rl; letter-spacing:.08em;
+  box-shadow:0 8px 18px rgba(66,78,88,.15), inset 0 0 0 2px rgba(255,255,255,.28);
+}
+.corner-seal::before { inset:4px; border:1px solid rgba(42,48,52,.34); }
+.menu {
+  position:absolute; right:5.4vw; top:49.5%; bottom:auto; z-index:20;
+  display:flex; flex-direction:column; gap:10px; width:min(372px, 32vw); max-height:50vh; overflow-y:auto;
+  padding:14px 14px 16px;
+  transform:translateY(-34%);
+  background:
+    linear-gradient(180deg, rgba(250,252,255,.78), rgba(240,245,250,.60)),
+    radial-gradient(ellipse at 0% 50%, rgba(12,15,17,.06), transparent 65%);
+  border:1px solid rgba(34,42,47,.18);
+  box-shadow:0 30px 88px rgba(87,104,119,.18), inset 0 0 0 1px rgba(255,255,255,.48);
+  backdrop-filter: blur(10px) saturate(1.04);
+}
+.menu::before { content:"功能選項"; font-size:11px; letter-spacing:.42em; color:rgba(44,53,60,.54); padding:0 0 5px 4px; }
+.menu-item {
+  position:relative; min-height:58px; padding:12px 18px 12px 54px;
+  border:1px solid rgba(30,38,45,.08); background:rgba(255,255,255,.22);
+  color:rgba(18,23,27,.78); text-align:left; font-family:var(--font-kai); font-size:21px;
+  letter-spacing:.24em; cursor:pointer; transition:background .16s ease,border-color .16s ease,transform .16s ease,color .16s ease, box-shadow .16s ease;
+}
+.menu-item::before { content:""; position:absolute; left:18px; top:50%; width:22px; height:1.5px; background:rgba(22,27,31,.38); transform:translateY(-50%); }
+.menu-item small { display:block; margin-top:5px; font-family:var(--font-mono); font-size:10px; letter-spacing:.16em; color:rgba(54,66,75,.58); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.menu-item:hover, .menu-item.active {
+  transform:translateX(-6px); color:rgba(0,0,0,.92); border-color:rgba(28,34,38,.26);
+  background:rgba(255,255,255,.78); box-shadow:0 18px 34px rgba(91,108,124,.16);
+}
+.menu-item.active::before { height:3px; background:rgba(0,0,0,.84); }
+.menu-item:disabled { opacity:.36; cursor:not-allowed; }
+.menu::-webkit-scrollbar { width: 6px; }
+.menu::-webkit-scrollbar-thumb { background: rgba(68, 82, 92, .30); }
+.footer-bar {
+  height:64px; z-index:30; background:linear-gradient(180deg, transparent, rgba(223,232,241,.62)); border-top:1px solid rgba(38,45,51,.10);
+}
+.footer-meta { font-family:var(--font-mono); color:rgba(44,54,62,.58); font-size:10px; letter-spacing:.24em; }
+.prompt { color:rgba(30,38,44,.68); font-size:12px; }
+.key { border-radius:50%; background:rgba(255,255,255,.22); color:rgba(23,28,32,.72)!important; border-color:rgba(23,28,32,.34)!important; }
+.modal-mask { position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:80; background:rgba(230,238,247,.62); backdrop-filter:blur(6px); }
+.modal-mask.show { display:flex; }
+.modal { width:min(420px,80vw); padding:34px 38px 28px; text-align:center; background:rgba(247,250,253,.80); border:1px solid rgba(22,27,31,.22); box-shadow:0 26px 90px rgba(65,80,94,.26); }
+.modal-title { font-size:28px; letter-spacing:.28em; color:rgba(8,10,11,.86); }
+.modal-body { margin:16px 0 26px; font-size:15px; line-height:1.8; letter-spacing:.12em; color:rgba(39,47,54,.66); }
+.modal-actions { display:flex; justify-content:center; gap:14px; }
+.modal-btn { padding:10px 28px; border:1px solid rgba(22,27,31,.22); background:rgba(255,255,255,.30); color:rgba(10,12,14,.75); font-family:var(--font-kai); font-size:16px; letter-spacing:.28em; cursor:pointer; }
+.modal-btn.danger { background:rgba(14,17,19,.86); color:rgba(246,249,252,.92); }
+/* PS5 / shadcn-grade polish: clear focus rings, tighter safe-area placement,
+ * tactile component states, but no style drift away from cold ink reference. */
+.menu {
+  border-radius: 0;
+  outline: 1px solid rgba(255,255,255,.24);
+}
+.menu-item {
+  isolation: isolate;
+  overflow: hidden;
+}
+.menu-item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.42), transparent 42%),
+    radial-gradient(ellipse 80% 100% at 0% 50%, rgba(5,7,8,.10), transparent 64%);
+  opacity: 0;
+  transition: opacity .16s ease;
+}
+.menu-item:hover::after,
+.menu-item.active::after,
+.menu-item:focus-visible::after { opacity: 1; }
+.menu-item:focus-visible,
+.modal-btn:focus-visible {
+  outline: 2px solid rgba(5,7,8,.72);
+  outline-offset: 3px;
+}
+.menu-item.active {
+  letter-spacing: .28em;
+}
+.profile,
+.save-hint,
+.menu,
+.modal {
+  backdrop-filter: blur(6px) saturate(1.05);
+}
+.key {
+  width: 28px;
+  height: 28px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.26), 0 8px 18px rgba(70,84,98,.12);
+}
+@media (min-width: 2200px) {
+  .menu { width: 420px; gap: 10px; }
+  .menu-item { min-height: 62px; font-size: 24px; padding-left: 58px; }
+  .profile-name { font-size: 21px; }
+  .save-where { font-size: 16px; }
+}
+@media (max-width:1100px), (max-height:660px) {
+  .profile,.save-hint { display:none; }
+  .title-wrap { left:46%; top:11vh; height:50vh; min-height:300px; }
+  .title-main { font-size:clamp(76px, 12vw, 124px); letter-spacing:.12em; }
+  .title-sub { left:14%; font-size:clamp(18px, 2.4vw, 28px); }
+  .title-tagline { display:none; }
+  .menu { right:4vw; top:52%; width:36vw; transform:translateY(-30%); }
+}
+@media (prefers-reduced-motion: reduce) { .leaf,.leaf-sway,.leaf-spin{ animation:none; opacity:0;} }
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+
+window.SRLogin = {
+  data: {
+    playerName: "風行客",
+    playerStatus: "在线 · 已游 12 时",
+    saveTag: "续旅",
+    saveWhere: "第三幕 · 山村回忆 · 灵儿戏水",
+    saveTime: "二〇二六/四/二四 · 廿二时四一分 · 自动存档",
+    titleMain: "一介",
+    titleSub: "寒土孤山",
+    tagline: "凡人的宁静 · 时代的碾碎",
+    footer: "一介 · 寒土孤山 · 内测版 〇·壹·〇 · 二〇二六",
+    selectedIndex: 0,
+    options: [
+      { optionId: "ContinueJourney", label: "继续旅途", hint: "第三幕 · 山村回忆", enabled: true },
+      { optionId: "NewBeginning", label: "新的开始", hint: "从寒土孤山重新起程", enabled: true },
+      { optionId: "LoadSave", label: "载入存档", hint: "查看可用回忆节点", enabled: true },
+      { optionId: "Settings", label: "设定", hint: "画面 · 声音 · 操作", enabled: true },
+      { optionId: "Quit", label: "退出", hint: "离开游戏", enabled: true }
+    ]
+  },
+  setData(data) {
+    this.data = Object.assign({}, this.data, data || {});
+    this.render();
+  },
+  setSelection(index) {
+    const count = this.data.options.length;
+    if (!count) return;
+    let next = (index + count) % count;
+    for (let i = 0; i < count; i++) {
+      const option = this.data.options[next];
+      if (!option || option.enabled !== false) {
+        // 关键：选中项没变化就直接返回，否则鼠标 hover 期间会无限重建 DOM，
+        // 导致 mousedown/mouseup 落在不同 element 上，click 永远不合成。
+        if (this.data.selectedIndex === next) return;
+        this.data.selectedIndex = next;
+        this.renderMenu();
+        return;
+      }
+      next = (next + 1) % count;
+    }
+  },
+  moveUp() {
+    this.setSelection(this.data.selectedIndex - 1);
+  },
+  moveDown() {
+    this.setSelection(this.data.selectedIndex + 1);
+  },
+  commit() {
+    const option = this.data.options[this.data.selectedIndex];
+    if (!option || option.enabled === false) return;
+    if (option.optionId === "Quit") {
+      this.openQuitModal();
+      return;
+    }
+    ue5("commit", { optionId: option.optionId, label: option.label });
+  },
+  back() {
+    if (this.modalOpen()) { this.closeQuitModal(); return; }
+    this.openQuitModal();
+  },
+  modalOpen() {
+    return document.querySelector(".modal-mask").classList.contains("show");
+  },
+  openQuitModal() {
+    document.querySelector(".modal-mask").classList.add("show");
+  },
+  closeQuitModal() {
+    document.querySelector(".modal-mask").classList.remove("show");
+  },
+  confirmQuit() {
+    ue5("commit", { optionId: "Quit", label: "退出" });
+  },
+  render() {
+    document.querySelector(".profile-name").textContent = this.data.playerName;
+    document.querySelector(".profile-tag").textContent = this.data.playerStatus;
+    document.querySelector(".save-tag").textContent = this.data.saveTag;
+    document.querySelector(".save-where").textContent = this.data.saveWhere;
+    document.querySelector(".save-time").textContent = this.data.saveTime;
+    document.querySelector(".title-main").textContent = this.data.titleMain;
+    document.querySelector(".title-sub").textContent = this.data.titleSub;
+    document.querySelector(".title-tagline").textContent = this.data.tagline;
+    document.querySelector(".footer-meta").textContent = this.data.footer;
+    this.renderMenu();
+  },
+  renderMenu() {
+    const menu = document.querySelector(".menu");
+    menu.innerHTML = "";
+    let activeNode = null;
+    this.data.options.forEach((option, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "menu-item" + (index === this.data.selectedIndex ? " active" : "");
+      button.disabled = option.enabled === false;
+      button.innerHTML = `${option.label}${option.hint ? `<small>${option.hint}</small>` : ""}`;
+      button.addEventListener("mouseenter", () => this.setSelection(index));
+      button.addEventListener("click", () => {
+        this.setSelection(index);
+        this.commit();
+      });
+      menu.appendChild(button);
+      if (index === this.data.selectedIndex) activeNode = button;
+    });
+    if (activeNode && typeof activeNode.scrollIntoView === "function") {
+      activeNode.scrollIntoView({ block: "nearest" });
+    }
+  }
+};
+
+ue.interface.setStartupData = function(data) {
+  window.SRLogin.setData(data);
+};
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowUp" || event.key === "w" || event.key === "W") {
+    event.preventDefault();
+    window.SRLogin.moveUp();
+  } else if (event.key === "ArrowDown" || event.key === "s" || event.key === "S") {
+    event.preventDefault();
+    window.SRLogin.moveDown();
+  } else if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    window.SRLogin.commit();
+  } else if (event.key === "Escape" || event.key === "Backspace") {
+    event.preventDefault();
+    window.SRLogin.back();
+  }
+});
+
+/* ----- 冷白飞雪 / 淡墨颗粒：沿用 leaf 容器，视觉上不再是红叶 ----- */
+const SR_LEAF_SVG = `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="2.4" fill="#F8FBFF" opacity="0.88"/><circle cx="7" cy="9" r="3.8" fill="#2A3238" opacity="0.16"/></svg>`;
+
+function srSpawnLeaves(count) {
+  const layer = document.querySelector(".leaves");
+  if (!layer) return;
+  layer.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < count; i++) {
+    const leaf = document.createElement("div");
+    leaf.className = "leaf";
+    const left      = (i + 0.5) * (100 / count) + (Math.random() - 0.5) * 4;
+    const fallDur   = 9 + Math.random() * 11;       /* 9–20s */
+    const fallDelay = -Math.random() * fallDur;
+    const swayDur   = 2.6 + Math.random() * 2.8;    /* 2.6–5.4s 摆动周期 */
+    const swayDelay = -Math.random() * swayDur;     /* 让正弦相位散开 */
+    const spinDur   = 5 + Math.random() * 7;        /* 5–12s 一周自转 */
+    const scale     = 0.55 + Math.random() * 1.15;  /* 0.55–1.70 */
+    const sway      = 18 + Math.random() * 36;      /* 18–54px 横摆 */
+    const rot       = Math.random() * 360;
+    leaf.style.left = `${left}%`;
+    leaf.style.setProperty("--fall-dur",   `${fallDur.toFixed(2)}s`);
+    leaf.style.setProperty("--fall-delay", `${fallDelay.toFixed(2)}s`);
+    leaf.style.setProperty("--sway-dur",   `${swayDur.toFixed(2)}s`);
+    leaf.style.setProperty("--sway-delay", `${swayDelay.toFixed(2)}s`);
+    leaf.style.setProperty("--spin-dur",   `${spinDur.toFixed(2)}s`);
+    leaf.style.setProperty("--leaf-scale", scale.toFixed(2));
+    leaf.style.setProperty("--sway",       `${sway.toFixed(1)}px`);
+    leaf.style.setProperty("--rot-from",   `${rot.toFixed(0)}deg`);
+    leaf.innerHTML = `<div class="leaf-sway"><div class="leaf-spin">${SR_LEAF_SVG}</div></div>`;
+    frag.appendChild(leaf);
+  }
+  layer.appendChild(frag);
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  srSpawnLeaves(22);
+  if (window.SRPerfHud && !SRPerfHud.isVisible()) SRPerfHud.toggle(); /* 帧率默认开 */
+  window.SRLogin.render();
+  ue5("ready", { surface: "startup-web-login" });
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="ink-birds" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+  <div class="leaves" aria-hidden="true"></div>
+
+  <section class="profile" aria-label="玩家档案">
+    <div class="avatar">風</div>
+    <div>
+      <div class="profile-name"></div>
+      <div class="profile-tag"></div>
+    </div>
+  </section>
+
+  <section class="save-hint" aria-label="最近存档">
+    <div class="save-tag"></div>
+    <div class="save-where"></div>
+    <div class="save-time"></div>
+  </section>
+
+  <section class="title-wrap" aria-label="标题">
+    <div class="title-main"></div>
+    <div class="title-sub"></div>
+    <div class="title-divider"></div>
+    <div class="title-tagline"></div>
+  </section>
+
+  <div class="seal corner-seal">一介印</div>
+  <nav class="menu" aria-label="主菜单"></nav>
+
+  <footer class="footer-bar">
+    <div class="footer-meta"></div>
+    <div class="prompts">
+      <div class="prompt"><span class="key cross">✕</span>确认</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+      <div class="prompt"><span class="key triangle">△</span>阅览</div>
+    </div>
+  </footer>
+
+  <div class="modal-mask" role="dialog" aria-modal="true" aria-labelledby="quitTitle">
+    <div class="modal">
+      <div class="modal-title" id="quitTitle">暂离寒山？</div>
+      <div class="modal-body">雪声未停，墨迹已干。自动存档会保留此刻。</div>
+      <div class="modal-actions">
+        <button class="modal-btn" type="button" onclick="window.SRLogin.closeQuitModal()">留 下</button>
+        <button class="modal-btn danger" type="button" onclick="window.SRLogin.confirmQuit()">离 开</button>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>
+

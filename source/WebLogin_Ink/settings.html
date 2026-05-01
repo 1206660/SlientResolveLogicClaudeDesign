@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 议政厅 · 水墨水墨</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+/* === Ink Settings · PS5 / shadcn-grade component polish =====================
+ * 风格保持参考图：冷白宣纸、淡墨线、黑墨字、少量方印。组件质量按 shadcn/ui
+ * 的清晰层级、可预测状态、细边框、焦点环和高密度响应式来做；不引入 React。
+ * ========================================================================== */
+:root {
+  --sr-safe-x: clamp(46px, 5vw, 92px);
+  --sr-safe-y: clamp(30px, 4.2vh, 72px);
+  --sr-radius: 18px;
+  --sr-panel: rgba(248, 251, 255, 0.54);
+  --sr-panel-strong: rgba(255, 255, 255, 0.72);
+  --sr-border: rgba(30, 38, 45, 0.14);
+  --sr-border-strong: rgba(9, 12, 14, 0.28);
+  --sr-text: rgba(5, 7, 8, 0.88);
+  --sr-muted: rgba(62, 74, 84, 0.58);
+  --sr-faint: rgba(89, 105, 118, 0.40);
+  --sr-shadow: 0 26px 86px rgba(73, 91, 108, 0.16);
+  --sr-ring: rgba(5, 7, 8, 0.72);
+}
+
+.stage {
+  color: var(--sr-text);
+  background:
+    radial-gradient(ellipse 42vw 30vh at 49% 24%, rgba(255,255,255,.78), transparent 72%),
+    radial-gradient(ellipse 50vw 38vh at 52% 58%, rgba(214,226,238,.42), transparent 78%),
+    radial-gradient(ellipse 22vw 18vh at 9% 94%, rgba(115,132,145,.30), transparent 72%),
+    radial-gradient(ellipse 24vw 20vh at 86% 92%, rgba(190,202,214,.24), transparent 74%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='59'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+    linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 46%, #DDE6EF 100%);
+}
+.stage::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 1.2px at 7% 18%, rgba(255,255,255,.88), transparent 72%),
+    radial-gradient(circle 1px at 89% 10%, rgba(255,255,255,.76), transparent 72%),
+    radial-gradient(circle 1.4px at 91% 30%, rgba(255,255,255,.88), transparent 72%),
+    radial-gradient(circle 1px at 6% 84%, rgba(255,255,255,.70), transparent 72%),
+    repeating-radial-gradient(circle at 100% 18%, rgba(255,255,255,.38) 0 1px, transparent 1px 14px);
+  opacity: .86;
+  z-index: 0;
+}
+.stage::after {
+  content: "";
+  position: absolute; inset: auto 0 0 0;
+  height: 27vh;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(0deg, rgba(36,43,48,.30), transparent 65%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 420' preserveAspectRatio='none'><path d='M0 330 C160 270 260 355 410 300 C520 260 640 350 790 300 C940 245 1030 345 1200 292 C1370 240 1480 335 1600 278 L1600 420 L0 420 Z' fill='%233A4146' opacity='.30'/><path d='M0 405 C250 360 460 393 700 350 C980 302 1210 388 1600 330 L1600 420 L0 420 Z' fill='%23080A0B' opacity='.18'/></svg>");
+}
+
+.header,
+.seal.corner-seal-2 { display: none; }
+
+.body {
+  position: absolute;
+  top: calc(var(--sr-safe-y) + 54px);
+  left: var(--sr-safe-x);
+  right: var(--sr-safe-x);
+  bottom: 78px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(236px, 17vw) minmax(620px, 1fr);
+  gap: clamp(18px, 2vw, 28px);
+}
+.sidebar,
+.content {
+  min-height: 0;
+  border: 1px solid var(--sr-border) !important;
+  background: var(--sr-panel) !important;
+  box-shadow: var(--sr-shadow), inset 0 0 0 1px rgba(255,255,255,.32) !important;
+  backdrop-filter: blur(5px);
+}
+.sidebar {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+.sidebar::before {
+  content: "SETTINGS";
+  padding: 8px 11px 10px;
+  color: var(--sr-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .42em;
+}
+.cat {
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  min-height: 72px;
+  padding: 11px 14px;
+  border: 1px solid transparent !important;
+  background: rgba(255,255,255,.12) !important;
+  color: var(--sr-text) !important;
+  cursor: pointer;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.cat::before {
+  content: "";
+  position: absolute; left: 12px; top: 50%;
+  width: 18px; height: 1.5px;
+  background: rgba(18, 23, 27, .28);
+  transform: translateY(-50%);
+}
+.cat:hover,
+.cat.active {
+  transform: translateX(4px);
+  background: rgba(255,255,255,.56) !important;
+  border-color: var(--sr-border-strong) !important;
+  box-shadow: 0 18px 42px rgba(80, 98, 116, .13), inset 0 -2px 0 rgba(5,7,8,.30) !important;
+}
+.cat-num {
+  grid-row: 1 / 3;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(18, 23, 27, .64);
+  border: 1px solid rgba(18, 23, 27, .18);
+  background: rgba(255,255,255,.18);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.cat.active .cat-num { color: #fff; background: rgba(5,7,8,.82); border-color: rgba(5,7,8,.82); }
+.cat-name { font-size: 18px; letter-spacing: .22em; color: var(--sr-text); }
+.cat-en { margin-top: 2px; font-family: var(--font-mono); font-size: 9px; letter-spacing: .24em; color: var(--sr-muted); }
+
+.content {
+  position: relative;
+  padding: clamp(22px, 2.4vw, 38px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.content::before { display: none; }
+.content::-webkit-scrollbar { width: 8px; }
+.content::-webkit-scrollbar-track { background: rgba(0,0,0,.04); }
+.content::-webkit-scrollbar-thumb { background: rgba(84, 98, 109, .32); }
+.section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(15, 20, 24, .12);
+}
+.section-title {
+  color: var(--sr-text) !important;
+  font-size: clamp(28px, 2.3vw, 42px);
+  letter-spacing: .16em;
+  line-height: 1;
+}
+.section-hint {
+  max-width: 420px;
+  color: rgba(62, 74, 84, .70);
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .16em;
+  line-height: 1.5;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(220px, .92fr) minmax(340px, 1.08fr) minmax(92px, auto);
+  align-items: center;
+  gap: 16px;
+  min-height: 72px;
+  margin-top: 8px;
+  padding: 14px 18px;
+  border: 1px solid rgba(30,38,45,.12) !important;
+  background: rgba(255,255,255,.32) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.28) !important;
+}
+.row.signature {
+  background: linear-gradient(90deg, rgba(255,255,255,.48), rgba(255,255,255,.18)) !important;
+  border-color: rgba(5,7,8,.26) !important;
+}
+.row-title { font-size: 19px; letter-spacing: .16em; color: rgba(10, 12, 14, .90) !important; }
+.row-desc { margin-top: 5px; color: rgba(62, 74, 84, .74) !important; font-size: 12px; letter-spacing: .06em; line-height: 1.45; }
+.value {
+  justify-self: end;
+  min-width: 64px;
+  color: rgba(5,7,8,.82);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-align: right;
+}
+.value span { color: var(--sr-faint); }
+.seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(30,38,45,.12);
+  background: rgba(223,232,241,.44);
+}
+.seg-item {
+  min-width: 76px;
+  padding: 9px 12px;
+  color: rgba(35,43,50,.62) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  font-size: 13px;
+  letter-spacing: .12em;
+  text-align: center;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
+}
+.seg-item:hover { background: rgba(255,255,255,.42) !important; color: var(--sr-text) !important; }
+.seg-item.active {
+  background: rgba(5,7,8,.84) !important;
+  color: rgba(248,251,255,.94) !important;
+  border-color: rgba(5,7,8,.84) !important;
+  box-shadow: 0 10px 24px rgba(44,54,64,.20) !important;
+}
+.toggle {
+  display: inline-flex; align-items: center; gap: 12px;
+  cursor: pointer;
+  color: var(--sr-muted) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.toggle-track {
+  width: 54px; height: 30px;
+  padding: 3px;
+  border: 1px solid rgba(30,38,45,.18);
+  background: rgba(223,232,241,.46);
+  transition: background .15s ease, border-color .15s ease;
+}
+.toggle-knob {
+  width: 22px; height: 22px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(30,38,45,.18);
+  box-shadow: 0 5px 12px rgba(54,66,78,.18);
+  transition: transform .16s cubic-bezier(.22,.9,.26,1), background .15s ease;
+}
+.toggle.on .toggle-track { background: rgba(5,7,8,.84); border-color: rgba(5,7,8,.84); }
+.toggle.on .toggle-knob { transform: translateX(24px); background: rgba(248,251,255,.96); }
+.toggle-label { font-size: 13px; letter-spacing: .14em; }
+.slider-wrap { min-width: 280px; padding: 10px 0; }
+.slider {
+  position: relative;
+  height: 5px;
+  background: rgba(30,38,45,.14);
+  cursor: ew-resize;
+}
+.slider-fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, rgba(5,7,8,.74), rgba(75,88,100,.48));
+}
+.slider-knob {
+  position: absolute;
+  top: 50%;
+  width: 22px; height: 22px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(248,251,255,.96);
+  border: 1px solid rgba(5,7,8,.26);
+  box-shadow: 0 10px 22px rgba(44,54,64,.20);
+}
+.action-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(30,38,45,.10);
+}
+.action-btn {
+  min-width: 136px;
+  padding: 12px 18px;
+  border: 1px solid rgba(30,38,45,.16) !important;
+  background: rgba(255,255,255,.22) !important;
+  color: rgba(8,10,12,.72) !important;
+  font-family: var(--font-kai);
+  font-size: 15px;
+  letter-spacing: .26em;
+  cursor: pointer;
+  transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.action-btn.primary {
+  background: rgba(5,7,8,.86) !important;
+  color: rgba(248,251,255,.94) !important;
+  border-color: rgba(5,7,8,.86) !important;
+}
+.action-btn:hover { transform: translateY(-1px); box-shadow: 0 16px 36px rgba(60,75,90,.14) !important; }
+.action-btn:focus-visible,
+.seg-item:focus-visible,
+.cat:focus-visible,
+.toggle:focus-visible,
+.slider:focus-visible {
+  outline: 2px solid var(--sr-ring);
+  outline-offset: 3px;
+}
+.toast {
+  position: absolute;
+  right: var(--sr-safe-x);
+  bottom: 88px;
+  z-index: 8;
+  min-width: 260px;
+  padding: 14px 18px;
+  color: var(--sr-text);
+  background: rgba(248,251,255,.76);
+  border: 1px solid rgba(30,38,45,.18);
+  box-shadow: 0 20px 60px rgba(71,88,104,.20);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity .18s ease, transform .18s ease;
+  letter-spacing: .16em;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.footer-bar {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  z-index: 6;
+  height: 66px;
+  padding: 0 var(--sr-safe-x);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, transparent, rgba(223,232,241,.58)) !important;
+  border-top: 1px solid rgba(30,38,45,.10) !important;
+  pointer-events: none;
+}
+.footer-bar > * { pointer-events: auto; }
+.footer-meta { color: var(--sr-muted) !important; font-family: var(--font-mono); font-size: 10px; letter-spacing: .24em; }
+.prompts { display: flex; align-items: center; gap: 20px; }
+.prompt { color: rgba(34,42,48,.68) !important; font-size: 12px; letter-spacing: .16em; }
+.key { border-radius: 50%; background: rgba(255,255,255,.22) !important; color: rgba(23,28,32,.72)!important; border-color: rgba(23,28,32,.34)!important; }
+@media (max-width: 1180px), (max-height: 680px) {
+  .body { top: calc(var(--sr-safe-y) + 48px); grid-template-columns: 210px 1fr; bottom: 78px; }
+  .row { grid-template-columns: 1fr; gap: 10px; align-items: start; }
+  .value { justify-self: start; text-align: left; }
+  .section-head { display: block; }
+  .section-hint { margin-top: 8px; text-align: left; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+
+function SRNormalizeTemplateOption(value) {
+  if (value === "Ink" || value === "Sanguo") return "Ink";
+  if (value === "Default") return "Default";
+  return "Default";
+}
+
+window.SRSettings = {
+  state: {
+    activeCategoryId: "display",
+    categories: [
+      { id: "display",   numeral: "壹", name: "影像", en: "DISPLAY" },
+      { id: "audio",     numeral: "貳", name: "音聲", en: "AUDIO" },
+      { id: "controls",  numeral: "參", name: "操控", en: "CONTROLS" },
+      { id: "gameplay",  numeral: "肆", name: "玩法", en: "GAMEPLAY" },
+      { id: "access",    numeral: "伍", name: "輔助", en: "ACCESSIBILITY" },
+      { id: "account",   numeral: "陸", name: "帳號", en: "ACCOUNT" }
+    ],
+    sections: {
+      display: {
+        title: "影像", hint: "八项 · 自动保存",
+        rows: [
+          { id: "template", title: "界面模板", desc: "整体视觉风格 · 切换后将重载界面",
+            kind: "seg", signature: true,
+            options: [{ id:"Default", label:"默认 · 楷墨" },{ id:"Ink", label:"水墨 · Ink" }],
+            value: "Default" },
+          { id: "renderMode", title: "画面模式", desc: "优先帧率（性能）或更高解析度（画质）· 平衡模式启用可变帧率",
+            kind: "seg", options: [{ id:"perf", label:"性能 · 六十帧" },{ id:"balance", label:"平衡 · 四十帧" },{ id:"quality", label:"画质 · 三十帧" }],
+            value: "balance" },
+          { id: "hdr", title: "高动态范围", desc: "需电视支持 · 开启后可进入校准",
+            kind: "toggle", value: true, valueText: "1400 尼特", labelOn: "已开 · 标准制式", labelOff: "未开" },
+          { id: "scrollMode", title: "水墨残卷模式", desc: "水墨化滤镜 · 胶片颗粒 · 风声增强 · 致敬汉墓壁画与古卷",
+            kind: "seg", signature: true, options: [{ id:"off", label:"关闭" },{ id:"ink", label:"水墨" },{ id:"scroll", label:"古卷" }],
+            value: "off" },
+          { id: "motionBlur", title: "运动模糊", desc: "摄像机快速移动时的模糊强度",
+            kind: "slider", value: 32, max: 100 },
+          { id: "camShake", title: "摄像机摇晃", desc: "战斗与奔跑时的屏幕摇晃",
+            kind: "slider", value: 60, max: 100 },
+          { id: "subtitleSize", title: "字幕大小", desc: "含说话人标签与背景不透明度",
+            kind: "seg", options: [{ id:"s",label:"小" },{ id:"m",label:"中" },{ id:"l",label:"大" },{ id:"xl",label:"特大" }],
+            value: "m" },
+          { id: "colorblind", title: "色觉辅助", desc: "调整关键 UI 与敌我识别的色彩",
+            kind: "seg", options: [{ id:"off",label:"关闭" },{ id:"rg",label:"红绿" },{ id:"by",label:"蓝黄" },{ id:"all",label:"全色盲" }],
+            value: "off" }
+        ]
+      },
+      audio: {
+        title: "音聲", hint: "五项 · 主音量 80%",
+        rows: [
+          { id: "master",  title: "主音量", desc: "总输出 · 影响所有音轨", kind:"slider", value: 80, max: 100 },
+          { id: "music",   title: "配乐",   desc: "片头 · 战斗 · 探索",   kind:"slider", value: 70, max: 100 },
+          { id: "ambient", title: "环境",   desc: "风 · 水 · 林 · 远人声", kind:"slider", value: 65, max: 100 },
+          { id: "voice",   title: "配音",   desc: "对白 · 念白 · 战吼",     kind:"slider", value: 90, max: 100 },
+          { id: "subtitleVoice", title: "字幕音", desc: "字幕推送提示音", kind:"toggle", value: false, labelOn:"已开", labelOff:"已关" }
+        ]
+      },
+      controls: {
+        title: "操控", hint: "DualSense · 可外设",
+        rows: [
+          { id: "vibration", title: "振动", desc: "DualSense 触觉反馈强度", kind:"slider", value: 50, max: 100 },
+          { id: "trigger",   title: "自适应扳机", desc: "L2/R2 阻力与战斗节奏匹配", kind:"toggle", value:true, labelOn:"已开 · 战斗强化", labelOff:"已关" },
+          { id: "stickSensitivity", title: "摇杆灵敏度", desc: "右摇杆视角灵敏度", kind:"slider", value: 55, max: 100 },
+          { id: "invertY", title: "反向 Y 轴", desc: "上拉视角下移", kind:"toggle", value:false, labelOn:"已反", labelOff:"标准" }
+        ]
+      },
+      gameplay: {
+        title: "玩法", hint: "战斗与提示密度",
+        rows: [
+          { id: "difficulty", title: "难度", desc: "影响敌人攻击节奏与伤害",
+            kind:"seg", options:[{id:"easy",label:"宽悯"},{id:"normal",label:"如常"},{id:"hard",label:"凛冬"}], value:"normal" },
+          { id: "autoLock", title: "自动锁敌", desc: "动作命中前自动吸附目标", kind:"toggle", value:true, labelOn:"已开", labelOff:"已关" },
+          { id: "windHint", title: "风向辅助", desc: "潜行时显示风的指向", kind:"toggle", value:true, labelOn:"已开", labelOff:"已关" },
+          { id: "rttDensity", title: "RTT 提示密度", desc: "战斗内画面右上提示的密度",
+            kind:"seg", options:[{id:"low",label:"少"},{id:"mid",label:"中"},{id:"high",label:"多"}], value:"mid" }
+        ]
+      },
+      access: {
+        title: "輔助", hint: "无障碍",
+        rows: [
+          { id: "bigText", title: "大字体", desc: "UI 文本 +20%", kind:"toggle", value:false, labelOn:"已开", labelOff:"已关" },
+          { id: "highContrast", title: "高对比", desc: "提升敌我与可交互物的对比度", kind:"toggle", value:false, labelOn:"已开", labelOff:"已关" },
+          { id: "oneHand", title: "单手模式", desc: "重要操作合并到单侧手柄", kind:"toggle", value:false, labelOn:"已开", labelOff:"已关" },
+          { id: "screenReader", title: "屏读", desc: "朗读 UI 焦点", kind:"toggle", value:false, labelOn:"已开", labelOff:"已关" }
+        ]
+      },
+      account: {
+        title: "帳號", hint: "云存档",
+        rows: [
+          { id: "cloudSync", title: "云存档", desc: "自动同步至 Steam Cloud / PSN", kind:"toggle", value:true, labelOn:"已开", labelOff:"已关" },
+          { id: "telemetry", title: "匿名使用统计", desc: "用于改进游戏稳定性", kind:"toggle", value:true, labelOn:"已开", labelOff:"已关" }
+        ]
+      }
+    }
+  },
+
+  setActiveCategory(id) {
+    if (!this.state.sections[id]) return;
+    this.state.activeCategoryId = id;
+    this.renderSidebar();
+    this.renderContent();
+    this.renderBreadcrumb();
+  },
+
+  cycleCategory(delta) {
+    const cats = this.state.categories;
+    const idx = cats.findIndex(c => c.id === this.state.activeCategoryId);
+    const nextIdx = (idx + delta + cats.length) % cats.length;
+    this.setActiveCategory(cats[nextIdx].id);
+  },
+
+  setRowValue(rowId, newValue) {
+    const section = this.state.sections[this.state.activeCategoryId];
+    const row = section.rows.find(r => r.id === rowId);
+    if (!row) return;
+    row.value = newValue;
+    this.renderContent();
+    ue5("change", { categoryId: this.state.activeCategoryId, rowId, value: newValue });
+
+    // Live preview for accessibility theme switches — apply BEFORE save so the user
+    // sees the change while still adjusting.
+    if (rowId === "colorblind" || rowId === "highContrast" || rowId === "bigText") {
+      const themePayload = {
+        colorblind: this.state.sections.display.rows.find(r => r.id === "colorblind")?.value || "off",
+        contrast:   this.state.sections.access.rows.find(r => r.id === "highContrast")?.value ? "high" : "normal",
+        bigtext:    this.state.sections.access.rows.find(r => r.id === "bigText")?.value ? "on" : "off"
+      };
+      if (window.SRTheme) SRTheme.apply(themePayload);
+    }
+  },
+
+  apply() {
+    SRBridge.send("apply", { snapshot: this.snapshot() });
+    this.showToast("已保存 · 自动同步");
+  },
+
+  resetSection() {
+    SRBridge.send("reset", { categoryId: this.state.activeCategoryId });
+    this.showToast("已恢复默认");
+  },
+
+  showToast(text) {
+    const t = document.querySelector(".toast");
+    if (!t) return;
+    t.textContent = text;
+    t.classList.add("show");
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => t.classList.remove("show"), 1600);
+  },
+
+  back() {
+    ue5("back", { surface: "startup-web-settings" });
+  },
+
+  snapshot() {
+    const out = {};
+    Object.keys(this.state.sections).forEach(catId => {
+      out[catId] = {};
+      this.state.sections[catId].rows.forEach(row => {
+        out[catId][row.id] = row.value;
+      });
+    });
+    return out;
+  },
+
+  renderSidebar() {
+    const sidebar = document.querySelector(".sidebar");
+    sidebar.innerHTML = "";
+    this.state.categories.forEach(cat => {
+      const node = document.createElement("div");
+      node.className = "cat" + (cat.id === this.state.activeCategoryId ? " active" : "");
+      node.innerHTML = `
+        <div class="cat-num">${cat.numeral}</div>
+        <div class="cat-name">${cat.name}</div>
+        <div class="cat-en">${cat.en}</div>
+      `;
+      node.addEventListener("click", () => this.setActiveCategory(cat.id));
+      sidebar.appendChild(node);
+    });
+  },
+
+  renderBreadcrumb() {
+    const cur = this.state.categories.find(c => c.id === this.state.activeCategoryId);
+    document.querySelector(".bc-path .cur").textContent = cur ? cur.name : "";
+  },
+
+  renderContent() {
+    const content = document.querySelector(".content");
+    content.innerHTML = "";
+
+    const section = this.state.sections[this.state.activeCategoryId];
+    if (!section) return;
+
+    const head = document.createElement("div");
+    head.className = "section-head";
+    head.innerHTML = `
+      <div class="section-title">${section.title}</div>
+      <div class="section-hint">${section.hint}</div>
+    `;
+    content.appendChild(head);
+
+    section.rows.forEach(row => {
+      const node = document.createElement("div");
+      node.className = "row" + (row.signature ? " signature" : "");
+
+      const titleCell = document.createElement("div");
+      titleCell.innerHTML = `
+        <div class="row-title">${row.title}</div>
+        <div class="row-desc">${row.desc || ""}</div>
+      `;
+      node.appendChild(titleCell);
+
+      const controlCell = document.createElement("div");
+      const valueCell = document.createElement("div");
+      valueCell.className = "value";
+
+      if (row.kind === "seg") {
+        const seg = document.createElement("div");
+        seg.className = "seg";
+        row.options.forEach(opt => {
+          const item = document.createElement("div");
+          item.className = "seg-item" + (opt.id === row.value ? " active" : "");
+          item.textContent = opt.label;
+          item.addEventListener("click", () => this.setRowValue(row.id, opt.id));
+          seg.appendChild(item);
+        });
+        controlCell.appendChild(seg);
+        const cur = row.options.find(o => o.id === row.value);
+        valueCell.textContent = cur ? cur.label.split(" · ")[0] : "";
+      } else if (row.kind === "toggle") {
+        const wrap = document.createElement("div");
+        wrap.className = "toggle" + (row.value ? " on" : "");
+        wrap.innerHTML = `
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+          <div class="toggle-label">${row.value ? (row.labelOn || "已开") : (row.labelOff || "已关")}</div>
+        `;
+        wrap.addEventListener("click", () => this.setRowValue(row.id, !row.value));
+        controlCell.appendChild(wrap);
+        valueCell.innerHTML = row.valueText
+          ? row.valueText
+          : `<span>${row.value ? "开" : "关"}</span>`;
+      } else if (row.kind === "slider") {
+        const wrap = document.createElement("div");
+        wrap.className = "slider-wrap";
+        const track = document.createElement("div");
+        track.className = "slider";
+        const fill = document.createElement("div");
+        fill.className = "slider-fill";
+        const knob = document.createElement("div");
+        knob.className = "slider-knob";
+        const max = row.max || 100;
+        const pct = Math.max(0, Math.min(100, (row.value / max) * 100));
+        fill.style.width = pct + "%";
+        knob.style.left = pct + "%";
+        track.appendChild(fill);
+        track.appendChild(knob);
+        const valueFromEvent = (event) => {
+          const rect = track.getBoundingClientRect();
+          const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+          return Math.round(ratio * max);
+        };
+        let dragging = false;
+        const moveHandler = (event) => {
+          if (!dragging) return;
+          this.setRowValue(row.id, valueFromEvent(event));
+        };
+        const upHandler = () => {
+          if (!dragging) return;
+          dragging = false;
+          window.removeEventListener("mousemove", moveHandler);
+          window.removeEventListener("mouseup", upHandler);
+        };
+        track.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          dragging = true;
+          this.setRowValue(row.id, valueFromEvent(event));
+          window.addEventListener("mousemove", moveHandler);
+          window.addEventListener("mouseup", upHandler);
+        });
+        track.addEventListener("wheel", (event) => {
+          event.preventDefault();
+          const step = Math.max(1, Math.round(max / 50));
+          const next = Math.max(0, Math.min(max, row.value + (event.deltaY < 0 ? step : -step)));
+          this.setRowValue(row.id, next);
+        }, { passive: false });
+        wrap.appendChild(track);
+        controlCell.appendChild(wrap);
+        valueCell.innerHTML = `${row.value}<span class="unit">/ ${max}</span>`;
+      }
+      node.appendChild(controlCell);
+      node.appendChild(valueCell);
+      content.appendChild(node);
+    });
+
+    const actions = document.createElement("div");
+    actions.className = "action-row";
+    const apply = document.createElement("button");
+    apply.type = "button";
+    apply.className = "action-btn primary";
+    apply.textContent = "保 存";
+    apply.addEventListener("click", () => this.apply());
+    const reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "action-btn";
+    reset.textContent = "恢 复 默 认";
+    reset.addEventListener("click", () => this.resetSection());
+    actions.appendChild(apply);
+    actions.appendChild(reset);
+    content.appendChild(actions);
+  },
+
+  render() {
+    this.renderSidebar();
+    this.renderContent();
+    this.renderBreadcrumb();
+  }
+};
+
+ue.interface.setSettingsData = function(data) {
+  if (!data) return;
+  if (data.activeCategoryId) {
+    window.SRSettings.state.activeCategoryId = data.activeCategoryId;
+  }
+  if (data.values) {
+    Object.keys(data.values).forEach(catId => {
+      const section = window.SRSettings.state.sections[catId];
+      if (!section) return;
+      Object.keys(data.values[catId]).forEach(rowId => {
+        const row = section.rows.find(r => r.id === rowId);
+        if (row) row.value = rowId === "template" ? SRNormalizeTemplateOption(data.values[catId][rowId]) : data.values[catId][rowId];
+      });
+    });
+  }
+  window.SRSettings.render();
+};
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" || event.key === "Backspace") {
+    event.preventDefault();
+    window.SRSettings.back();
+  } else if (event.key === "Tab") {
+    event.preventDefault();
+    window.SRSettings.cycleCategory(event.shiftKey ? -1 : 1);
+  } else if (event.key === "ArrowUp" || event.key === "w" || event.key === "W") {
+    event.preventDefault();
+    window.SRSettings.cycleCategory(-1);
+  } else if (event.key === "ArrowDown" || event.key === "s" || event.key === "S") {
+    event.preventDefault();
+    window.SRSettings.cycleCategory(1);
+  } else if (event.key === "Enter") {
+    event.preventDefault();
+    window.SRSettings.apply();
+  }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  window.SRSettings.render();
+  ue5("ready", { surface: "startup-web-settings" });
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="header">
+    <div class="bc-kanji">設定</div>
+    <div class="bc-path">
+      <span>主页</span><span class="sep">·</span>
+      <span>設定</span><span class="sep">·</span>
+      <span class="cur">影像</span>
+    </div>
+  </div>
+  <div class="seal corner-seal-2">設</div>
+
+  <div class="body">
+    <div class="sidebar"></div>
+    <div class="content"></div>
+  </div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta">设定 · 内测版 〇·壹·〇 · 自动保存</div>
+    <div class="prompts">
+      <div class="prompt"><span class="key square">□</span>切换分类</div>
+      <div class="prompt"><span class="key triangle">△</span>恢复默认</div>
+      <div class="prompt"><span class="key cross">✕</span>保存</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+    </div>
+  </footer>
+
+  <div class="toast" aria-live="polite"></div>
+</main>
+</body>
+</html>
+
+

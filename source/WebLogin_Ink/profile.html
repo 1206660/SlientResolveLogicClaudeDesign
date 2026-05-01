@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 人物 · 水墨武将卡</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+/* === 水墨 · 武将卡 + 气脉八卦盘 ==========================================
+ * 布局重构：
+ *   - 左栏 portrait 改为大型武将卡（羊皮底 + "風"字大背景水印 + 朱印
+ *     + 名+阶+师承）
+ *   - 中栏 attrs 改"六虎符方阵"（每个属相是一块虎符），equipped 改
+ *     "兵器架格"（带铆钉 + 朱印 glyph）
+ *   - 右栏 spider 加八卦阴阳图作背景，雷达覆盖其上；history 改竹简卷
+ * SRProfile 命名空间、setProfileData 字段、SRBridge 协议层一致保留。
+ * ============================================================================ */
+
+.stage {
+  background:
+    radial-gradient(ellipse 50vw 30vh at 50% 30%, rgba(184, 58, 28, 0.06), transparent 70%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence baseFrequency='0.014 0.04' numOctaves='2' seed='13'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.28  0 0 0 0 0.14  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+    linear-gradient(180deg, #1A0F06 0%, #2A1B0E 50%, #3A2616 100%);
+}
+
+/* === 顶部朱漆门匾 ====================================================== */
+.header {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 124px;
+  display: flex; align-items: center; gap: 22px;
+  padding: 0 calc(5vw + 80px) 0 6vw;
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(0, 0, 0, 0.06) 0px, rgba(0, 0, 0, 0.06) 1px,
+      transparent 1px, transparent 5px),
+    linear-gradient(180deg, #2A1B0E 0%, var(--zhusha-deep) 30%, #6A1A08 50%, var(--zhusha-deep) 70%, #2A1B0E 100%);
+  border-bottom: 4px solid #2A1B0E;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), inset 0 0 0 2px rgba(220, 184, 122, 0.18);
+  z-index: 6;
+}
+.header::before, .header::after {
+  content: ""; position: absolute; left: 8px; right: 8px; height: 4px;
+  background:
+    radial-gradient(circle 2px at 5% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 25% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 50% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 75% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 95% 50%, #BC8F3A, transparent 55%);
+}
+.header::before { top: 6px; } .header::after { bottom: 8px; }
+
+.bc-kanji {
+  font-family: var(--font-kai);
+  font-size: clamp(36px, 4.0vw, 56px);
+  font-weight: 900;
+  letter-spacing: 0.4em; padding-left: 0.4em;
+  color: var(--paper);
+  text-shadow: 0 0 14px rgba(255, 220, 170, 0.5), 0 3px 6px rgba(0, 0, 0, 0.7);
+  position: relative; z-index: 2;
+}
+.bc-path {
+  margin-left: auto;
+  display: flex; align-items: center;
+  font-family: var(--font-kai);
+  font-size: 13px; letter-spacing: 0.32em;
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(76, 52, 28, 0.18) 0px, rgba(76, 52, 28, 0.18) 1px,
+      transparent 1px, transparent 4px),
+    linear-gradient(180deg, #C99566 0%, #A07546 100%);
+  border-left: 3px solid #4A2E16;
+  border-right: 3px solid #4A2E16;
+  padding: 8px 18px;
+  border-radius: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: #2A1B0E;
+}
+.bc-path span { padding: 0 8px; }
+.bc-path .sep { opacity: 0.45; color: var(--zhusha-deep); padding: 0 2px; }
+.bc-path .cur { color: var(--zhusha-deep); font-weight: 900; }
+
+.seal.corner-seal-2 {
+  position: absolute;
+  top: 30px; right: 5vw;
+  width: 64px; height: 64px;
+  font-size: 32px;
+  background: var(--zhusha);
+  border: 3px solid #2A1B0E;
+  border-radius: 0;
+  color: var(--paper);
+  font-family: var(--font-kai);
+  display: flex; align-items: center; justify-content: center;
+  transform: rotate(-5deg); z-index: 9;
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 222, 170, 0.22),
+    inset 0 0 12px rgba(0, 0, 0, 0.4),
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    0 0 18px var(--zhusha-glow);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.55);
+}
+
+/* === 主体三栏 ========================================================== */
+.body {
+  position: absolute;
+  top: 124px; left: 0; right: 0; bottom: 72px;
+  padding: 28px 5vw;
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) 1fr 380px;
+  gap: 28px;
+  overflow: hidden;
+}
+
+/* === 左栏：武将卡 ====================================================== */
+.portrait-col { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.portrait {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  position: relative; overflow: hidden;
+  /* 羊皮卷武将立绘卡 */
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(184, 58, 28, 0.18) 0%, transparent 70%),
+    repeating-linear-gradient(0deg,
+      rgba(76, 52, 28, 0.10) 0px, rgba(76, 52, 28, 0.10) 1px,
+      transparent 1px, transparent 6px),
+    linear-gradient(180deg, #C99566 0%, #A07546 60%, #6E4824 100%);
+  border-top: 8px solid #2A1B0E;
+  border-bottom: 8px solid #2A1B0E;
+  border-left: 3px solid #4A2E16;
+  border-right: 3px solid #4A2E16;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65), inset 0 0 0 1px rgba(220, 184, 122, 0.32);
+}
+.portrait::before {
+  /* 顶端朱砂绶带 */
+  content: "";
+  position: absolute;
+  top: -8px; left: 12px; right: 12px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--zhusha) 30%, var(--zhusha-bright) 50%, var(--zhusha) 70%, transparent);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+  z-index: 2;
+}
+.portrait::after {
+  content: "風";
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai);
+  font-size: 18vw;
+  font-weight: 900;
+  color: rgba(40, 24, 12, 0.32);
+  text-shadow: 0 0 12px rgba(184, 58, 28, 0.18);
+}
+.portrait .frame {
+  position: absolute; inset: 18px;
+  border: 1px dashed rgba(76, 52, 28, 0.45);
+  pointer-events: none;
+  z-index: 1;
+}
+.portrait .seal-mark {
+  position: absolute;
+  bottom: 22px; right: 22px;
+  width: 48px; height: 48px;
+  font-size: 26px;
+  background: var(--zhusha);
+  border: 3px solid #2A1B0E;
+  border-radius: 0;
+  color: var(--paper);
+  font-family: var(--font-kai);
+  display: flex; align-items: center; justify-content: center;
+  transform: rotate(-5deg);
+  z-index: 3;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 222, 170, 0.32),
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    0 0 12px var(--zhusha-glow);
+}
+
+.identity {
+  text-align: center;
+  line-height: 1.5;
+  background: rgba(40, 24, 12, 0.85);
+  border: 2px solid #4A2E16;
+  border-top: 4px solid var(--zhusha);
+  padding: 14px 18px 16px;
+  width: 100%;
+}
+.identity .name {
+  font-family: var(--font-kai);
+  font-size: 28px; font-weight: 900;
+  letter-spacing: 0.36em; padding-left: 0.36em;
+  color: var(--paper);
+  margin-bottom: 8px;
+  text-shadow: 0 0 12px rgba(255, 220, 170, 0.4);
+}
+.identity .clazz {
+  font-family: var(--font-kai);
+  font-size: 12px; font-weight: 900;
+  letter-spacing: 0.36em;
+  color: var(--paper);
+  display: inline-block;
+  padding: 4px 14px;
+  background: var(--zhusha);
+  border: 1px solid #2A1B0E;
+  box-shadow: 0 0 8px var(--zhusha-glow);
+}
+.identity .lineage {
+  margin-top: 14px;
+  font-family: var(--font-kai);
+  font-size: 12px; color: var(--paper-2);
+  letter-spacing: 0.18em; line-height: 1.85;
+}
+
+/* === 中栏：属相虎符 + 兵器架格 ========================================= */
+.center-col {
+  display: flex; flex-direction: column;
+  gap: 22px;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 184, 122, 0.25) transparent;
+}
+
+.section {
+  background:
+    radial-gradient(ellipse 60% 30% at 50% 0%, rgba(184, 58, 28, 0.08), transparent 70%),
+    linear-gradient(180deg, rgba(40, 24, 12, 0.85) 0%, rgba(20, 12, 6, 0.9) 100%);
+  border: 2px solid #4A2E16;
+  padding: 20px 22px;
+  position: relative;
+}
+.section::before {
+  /* 顶端铜钉条 */
+  content: "";
+  position: absolute;
+  top: 4px; left: 8px; right: 8px;
+  height: 3px;
+  background:
+    radial-gradient(circle 1.5px at 5% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 25% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 50% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 75% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 95% 50%, #BC8F3A, transparent 55%);
+}
+.section h3 {
+  font-family: var(--font-kai);
+  font-size: 18px; font-weight: 900;
+  letter-spacing: 0.36em; padding-left: 0.36em;
+  color: var(--paper);
+  margin: 6px 0 16px;
+  position: relative;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.section h3::before {
+  content: "▌";
+  display: inline-block;
+  width: 16px;
+  margin-left: -16px;
+  color: var(--zhusha);
+}
+
+/* attrs 重构为虎符方阵 —— grid 2 列每行一个属相虎符 */
+.attrs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 16px;
+}
+.attr-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 36px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background:
+    linear-gradient(180deg, #3A2614 0%, #2A1B0E 100%);
+  border: 2px solid #6E4824;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(220, 184, 122, 0.22);
+}
+.attr-name {
+  font-family: var(--font-kai);
+  font-size: 18px; font-weight: 900;
+  letter-spacing: 0.1em;
+  color: var(--zhusha-bright);
+  text-align: center;
+  width: 32px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.attr-bar {
+  flex: 1;
+  height: 6px;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(74, 46, 22, 0.45) 0px, rgba(74, 46, 22, 0.45) 4px,
+      transparent 4px, transparent 6px),
+    linear-gradient(180deg, #2A1B0E 0%, #4A2E16 100%);
+  border: 1px solid rgba(220, 184, 122, 0.32);
+  position: relative;
+}
+.attr-fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--zhusha) 0%, var(--zhusha-bright) 50%, var(--gold) 100%);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+}
+.attr-val {
+  font-family: var(--font-kai);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--paper);
+  text-align: right;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* equipped 重构为兵器架格 —— grid 2 列 */
+.equipped {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.equip {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background:
+    linear-gradient(180deg, #3A2614 0%, #2A1B0E 100%);
+  border: 2px solid #6E4824;
+  border-radius: 2px;
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(220, 184, 122, 0.22);
+}
+.equip::before {
+  /* 4 角铆钉 */
+  content: "";
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 2px at 0% 0%, #BC8F3A, transparent 60%),
+    radial-gradient(circle 2px at 100% 0%, #BC8F3A, transparent 60%),
+    radial-gradient(circle 2px at 0% 100%, #BC8F3A, transparent 60%),
+    radial-gradient(circle 2px at 100% 100%, #BC8F3A, transparent 60%);
+}
+.equip-glyph {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-kai);
+  font-size: 24px; font-weight: 900;
+  color: var(--paper);
+  background: linear-gradient(180deg, var(--zhusha-deep), #6A1A08);
+  border: 2px solid #2A1B0E;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 222, 170, 0.32);
+}
+.equip-info { flex: 1; min-width: 0; }
+.equip-slot {
+  font-family: var(--font-kai);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.32em;
+  color: rgba(220, 184, 122, 0.65);
+}
+.equip-name {
+  font-family: var(--font-kai);
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  color: var(--paper);
+  margin-top: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.equip-tier {
+  font-family: var(--font-kai);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  color: var(--gold);
+  margin-top: 2px;
+}
+
+/* === 右栏：八卦盘气脉 + 行迹竹简 ====================================== */
+.right-col {
+  display: flex; flex-direction: column; gap: 22px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 184, 122, 0.25) transparent;
+}
+
+/* spider 改八卦圆盘背景 */
+.spider {
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 50%, rgba(184, 58, 28, 0.08), transparent 70%),
+    linear-gradient(180deg, rgba(40, 24, 12, 0.85) 0%, rgba(20, 12, 6, 0.9) 100%);
+  border: 2px solid #4A2E16;
+  padding: 18px 18px 22px;
+  text-align: center;
+  position: relative;
+}
+.spider::before {
+  /* 顶部铜钉条 */
+  content: "";
+  position: absolute;
+  top: 4px; left: 8px; right: 8px;
+  height: 3px;
+  background:
+    radial-gradient(circle 1.5px at 5% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 25% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 50% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 75% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 1.5px at 95% 50%, #BC8F3A, transparent 55%);
+}
+.spider h3 {
+  font-family: var(--font-kai);
+  font-size: 16px; font-weight: 900;
+  letter-spacing: 0.36em; padding-left: 0.36em;
+  color: var(--paper);
+  margin: 6px 0 14px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.spider svg-wrap {
+  display: block;
+}
+.spider svg {
+  width: 100%; height: auto;
+  max-width: 320px;
+  /* 八卦阴阳鱼背景 */
+  background: conic-gradient(from 0deg,
+      #1A1208 0deg, #1A1208 180deg,
+      #DBC288 180deg, #DBC288 360deg);
+  border: 4px solid #4A2E16;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px rgba(220, 184, 122, 0.5),
+    0 0 24px rgba(220, 184, 122, 0.32),
+    0 0 60px rgba(184, 58, 28, 0.18);
+  padding: 14px;
+  box-sizing: content-box;
+}
+
+.history {
+  /* 行迹改为竹简卷 */
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(76, 52, 28, 0.18) 0px, rgba(76, 52, 28, 0.18) 1px,
+      transparent 1px, transparent 4px),
+    linear-gradient(180deg, #C99566 0%, #A07546 100%);
+  border-top: 6px solid #2A1B0E;
+  border-bottom: 6px solid #2A1B0E;
+  border-left: 3px solid #4A2E16;
+  border-right: 3px solid #4A2E16;
+  padding: 14px 22px;
+  position: relative;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+.history::before {
+  content: "行 錄";
+  position: absolute;
+  top: -16px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-kai);
+  font-size: 14px; font-weight: 900;
+  letter-spacing: 0.4em;
+  background: var(--zhusha);
+  color: var(--paper);
+  padding: 4px 14px;
+  border: 2px solid #2A1B0E;
+  box-shadow: 0 0 8px var(--zhusha-glow);
+}
+.history-row {
+  display: flex; justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px dashed rgba(76, 52, 28, 0.45);
+  font-family: var(--font-kai);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+}
+.history-row:last-child { border-bottom: 0; }
+.history-row .when {
+  color: var(--zhusha-deep);
+  font-weight: 900;
+  letter-spacing: 0.32em;
+}
+.history-row .what {
+  color: #2A1B0E;
+  font-weight: 700;
+}
+
+/* === 底部 footer ======================================================= */
+.footer-bar {
+  background:
+    linear-gradient(180deg,
+      transparent 0%, rgba(0, 0, 0, 0.4) 30%,
+      #2C1A0A 50%, #4A2E16 65%, #6E4824 78%, #4A2E16 92%, #2C1A0A 100%);
+  border-top: 1px solid rgba(110, 72, 36, 0.6);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.5);
+  height: 56px;
+  pointer-events: none;
+}
+.footer-bar > * { pointer-events: auto; }
+.footer-meta {
+  font-family: var(--font-kai);
+  color: var(--paper-2);
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.footer-meta::before { content: "❖ "; color: var(--zhusha-bright); }
+.prompts { display: flex; align-items: center; gap: 22px; }
+.prompt {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--paper-2);
+  font-family: var(--font-kai);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.key {
+  width: 26px; height: 26px;
+  border: 1.5px solid;
+  border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, rgba(20, 12, 6, 0.7), rgba(0, 0, 0, 0.5));
+  font-family: Arial, sans-serif;
+  font-size: 13px; font-weight: 700;
+}
+.key.cross    { color: #DCC288; border-color: #BC8F3A; }
+.key.circle   { color: var(--zhusha-bright); border-color: var(--zhusha); }
+.key.triangle { color: #7A8E5C; border-color: #4A6B3F; }
+.key.square   { color: #C99566; border-color: #6E4824; border-radius: 2px; }
+
+@media (max-width: 1180px) {
+  .body { grid-template-columns: 260px 1fr 340px; gap: 22px; }
+}
+@media (max-height: 720px) {
+  .header { height: 96px; }
+  .body { top: 96px; bottom: 60px; padding: 18px 4vw; gap: 18px; }
+  .footer-bar { height: 60px; }
+  .seal.corner-seal-2 { width: 50px; height: 50px; font-size: 26px; }
+  .spider svg { max-width: 240px; }
+  .identity .name { font-size: 24px; }
+  .section { padding: 16px 18px; }
+  .section h3 { font-size: 16px; }
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRProfile = {
+  state: {
+    name: "風行客",
+    title: "汉刀流 · 内门",
+    lineage: "汉北边骑 · 出居延关\n师承先生 · 三式入门",
+    attrs: [
+      { id:"strength",  name:"力",  v: 78 },
+      { id:"agility",   name:"行",  v: 82 },
+      { id:"endurance", name:"忍",  v: 70 },
+      { id:"qi",        name:"气",  v: 65 },
+      { id:"sense",     name:"察",  v: 88 },
+      { id:"poise",     name:"势",  v: 60 }
+    ],
+    radar: [
+      ["攻", 0.78], ["御", 0.62], ["速", 0.84], ["谋", 0.71], ["命", 0.66]
+    ],
+    equipped: [
+      { slot:"刀", name:"环首汉刀", tier:"上品", glyph:"刀" },
+      { slot:"甲", name:"片甲",     tier:"中品", glyph:"甲" },
+      { slot:"佩", name:"汉玉玦",   tier:"上品", glyph:"玦" },
+      { slot:"术", name:"风咏 · 聆", tier:"未阶", glyph:"聆" }
+    ],
+    history: [
+      { when:"〇·〇一", what:"出居延关" },
+      { when:"〇·〇五", what:"破雪行三日" },
+      { when:"〇·〇九", what:"返山村南口" },
+      { when:"〇·一一", what:"觉醒 · 第二式" }
+    ]
+  },
+
+  back() { SRBridge.back("startup-web-profile"); },
+
+  renderIdentity() {
+    document.querySelector(".identity .name").textContent  = this.state.name;
+    document.querySelector(".identity .clazz").textContent = this.state.title;
+    const lin = document.querySelector(".identity .lineage");
+    lin.innerHTML = "";
+    this.state.lineage.split("\n").forEach(line => {
+      const div = document.createElement("div");
+      div.textContent = line;
+      lin.appendChild(div);
+    });
+  },
+
+  renderAttrs() {
+    const wrap = document.querySelector(".attrs");
+    wrap.innerHTML = "";
+    this.state.attrs.forEach(a => {
+      const node = document.createElement("div");
+      node.className = "attr-row";
+      node.innerHTML = `
+        <div class="attr-name">${a.name}</div>
+        <div class="attr-bar"><div class="attr-fill" style="width:${a.v}%"></div></div>
+        <div class="attr-val">${a.v}</div>`;
+      wrap.appendChild(node);
+    });
+  },
+
+  renderEquipped() {
+    const wrap = document.querySelector(".equipped");
+    wrap.innerHTML = "";
+    this.state.equipped.forEach(e => {
+      const node = document.createElement("div");
+      node.className = "equip";
+      node.innerHTML = `
+        <div class="equip-glyph">${e.glyph}</div>
+        <div class="equip-info">
+          <div class="equip-slot">${e.slot}</div>
+          <div class="equip-name">${e.name}</div>
+          <div class="equip-tier">${e.tier}</div>
+        </div>`;
+      wrap.appendChild(node);
+    });
+  },
+
+  renderRadar() {
+    const svg = document.querySelector(".spider svg");
+    if (!svg) return;
+    const cx = 160, cy = 160, r = 120;
+    const pts = this.state.radar;
+    const n = pts.length;
+    const angleAt = (i) => -Math.PI / 2 + i * (2 * Math.PI / n);
+    const polarToXY = (i, ratio) => [
+      cx + r * ratio * Math.cos(angleAt(i)),
+      cy + r * ratio * Math.sin(angleAt(i))
+    ];
+    let html = "";
+    // grid rings —— 改竹青边
+    for (let g = 1; g <= 4; g++) {
+      const ratio = g / 4;
+      const ringPts = pts.map((_, i) => polarToXY(i, ratio).join(",")).join(" ");
+      html += `<polygon points="${ringPts}" fill="none" stroke="rgba(220, 184, 122, 0.28)" stroke-width="1"/>`;
+    }
+    // axes
+    pts.forEach((_, i) => {
+      const [x, y] = polarToXY(i, 1.0);
+      html += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(220, 184, 122, 0.32)" stroke-width="1"/>`;
+    });
+    // 中心阴阳鱼小圆点
+    html += `<circle cx="${cx}" cy="${cy - 60}" r="6" fill="#DBC288" />`;
+    html += `<circle cx="${cx}" cy="${cy + 60}" r="6" fill="#1A1208" />`;
+    // value polygon —— 朱砂晕开
+    const valPts = pts.map((p, i) => polarToXY(i, p[1]).join(",")).join(" ");
+    html += `<polygon points="${valPts}" fill="rgba(184, 58, 28, 0.55)" stroke="#FFE4B0" stroke-width="2" filter="drop-shadow(0 0 6px rgba(255, 220, 170, 0.5))"/>`;
+    // 顶点小印章
+    pts.forEach((p, i) => {
+      const [x, y] = polarToXY(i, p[1]);
+      html += `<rect x="${x - 4}" y="${y - 4}" width="8" height="8" fill="var(--zhusha)" stroke="#2A1B0E" stroke-width="1"/>`;
+    });
+    // labels
+    pts.forEach((p, i) => {
+      const [x, y] = polarToXY(i, 1.18);
+      html += `<text x="${x}" y="${y}" font-family="KaiBrush, KaiTi, serif" font-size="20" font-weight="900" fill="#FFE4B0" stroke="#2A1B0E" stroke-width="0.6" text-anchor="middle" dominant-baseline="middle" letter-spacing="2">${p[0]}</text>`;
+    });
+    svg.innerHTML = html;
+  },
+
+  renderHistory() {
+    const wrap = document.querySelector(".history-list");
+    wrap.innerHTML = "";
+    this.state.history.forEach(h => {
+      const node = document.createElement("div");
+      node.className = "history-row";
+      node.innerHTML = `<span class="when">${h.when}</span><span class="what">${h.what}</span>`;
+      wrap.appendChild(node);
+    });
+  },
+
+  render() {
+    this.renderIdentity();
+    this.renderAttrs();
+    this.renderEquipped();
+    this.renderRadar();
+    this.renderHistory();
+  }
+};
+
+ue.interface.setProfileData = function(data) {
+  if (!data) return;
+  Object.assign(window.SRProfile.state, data);
+  window.SRProfile.render();
+};
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRProfile.back(); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRProfile.render();
+  SRBridge.ready("startup-web-profile");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <div class="header">
+    <div class="bc-kanji">人物</div>
+    <div class="bc-path"><span>主页</span><span class="sep">·</span><span>人物</span><span class="sep">·</span><span class="cur">風行客</span></div>
+  </div>
+  <div class="seal corner-seal-2">己</div>
+
+  <div class="body">
+    <div class="portrait-col">
+      <div class="portrait">
+        <div class="frame"></div>
+        <div class="seal seal-mark">介</div>
+      </div>
+      <div class="identity">
+        <div class="name"></div>
+        <div class="clazz"></div>
+        <div class="lineage"></div>
+      </div>
+    </div>
+
+    <div class="center-col">
+      <section class="section">
+        <h3>属相</h3>
+        <div class="attrs"></div>
+      </section>
+      <section class="section">
+        <h3>佩物</h3>
+        <div class="equipped"></div>
+      </section>
+    </div>
+
+    <div class="right-col">
+      <section class="spider">
+        <h3>气脉 · 八卦</h3>
+        <svg viewBox="0 0 320 320"></svg>
+      </section>
+      <section class="history">
+        <div class="history-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta">人物 · DEV 预览 · 二〇二六</div>
+    <div class="prompts">
+      <div class="prompt"><span class="key cross">✕</span>详情</div>
+      <div class="prompt"><span class="key circle">○</span>返回</div>
+    </div>
+  </footer>
+</main>
+</body>
+</html>
+

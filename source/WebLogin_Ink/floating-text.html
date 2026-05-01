@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 浮动伤害数字 · WebUI</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+/* SR Floating Text · 屏幕坐标系下的伤害 / 暴击 / 治疗数字
+ * 透明全屏 + pointer-events:none。不等 setData 一次性给完整 list；C++ 每次伤害事件
+ * 推一条进来，前端就 spawn 一个 DOM 节点 → CSS keyframe 上飘 + 淡出 → 动画结束自删。
+ *
+ * 数据契约：
+ *   addFloatingText({
+ *     id: "<unique-string>",   // C++ 不强制传，前端会兜个 nextId
+ *     value: 42,                // 数字（伤害 / 治疗量）
+ *     screenX: 640, screenY: 360,  // 屏幕像素（C++ ProjectWorldLocationToScreen 算）
+ *     viewportW: 1920, viewportH: 1080,  // C++ viewport 像素 — 前端做 px → vw/vh 缩放，分辨率无关
+ *     kind: "damage" | "critical" | "heal",  // 影响色 / 大小
+ *     isCritical: false
+ *   })
+ */
+
+:root {
+  --ft-color-damage:    #EDDFC2;
+  --ft-color-critical:  #FF7A45;
+  --ft-color-heal:      #6EC76E;
+  --ft-stroke:          rgba(0, 0, 0, 0.85);
+}
+
+html, body { background: transparent !important; margin: 0; padding: 0; overflow: hidden; }
+body { pointer-events: none; }
+
+.ft-stage {
+  position: fixed;
+  inset: 0;
+  font-family: 'Cinzel', var(--font-mono), 'JetBrains Mono', Consolas, monospace;
+}
+
+.ft-num {
+  position: absolute;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ft-color-damage);
+  -webkit-text-stroke: 2px var(--ft-stroke);
+  paint-order: stroke fill;
+  text-shadow:
+    0 1px 0 rgba(0,0,0,0.4),
+    0 0 8px rgba(0,0,0,0.55);
+  /* 用 transform translate 不用 left/top 增量，避开 reflow，每帧 GPU 复合 */
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  animation: ft-float 1100ms cubic-bezier(0.18, 0.7, 0.3, 1) forwards;
+  user-select: none;
+  white-space: nowrap;
+}
+.ft-num.critical {
+  color: var(--ft-color-critical);
+  font-size: 38px;
+  animation: ft-float-crit 1300ms cubic-bezier(0.12, 0.8, 0.25, 1) forwards;
+}
+.ft-num.heal { color: var(--ft-color-heal); }
+
+@keyframes ft-float {
+  0%   { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+  10%  { transform: translate(-50%, calc(-50% - 12px)) scale(1.05); opacity: 1; }
+  20%  { transform: translate(-50%, calc(-50% - 16px)) scale(1.0); opacity: 1; }
+  100% { transform: translate(-50%, calc(-50% - 80px)) scale(0.85); opacity: 0; }
+}
+@keyframes ft-float-crit {
+  0%   { transform: translate(-50%, -50%) scale(0.5) rotate(-4deg); opacity: 0; }
+  12%  { transform: translate(-50%, calc(-50% - 16px)) scale(1.25) rotate(2deg); opacity: 1; }
+  25%  { transform: translate(-50%, calc(-50% - 22px)) scale(1.1) rotate(0); opacity: 1; }
+  100% { transform: translate(-50%, calc(-50% - 100px)) scale(0.95) rotate(0); opacity: 0; }
+}
+
+/* DEV 诊断条 — 记 N 个 addFloatingText 调用 */
+.dev-diag {
+  position: absolute; left: 12px; top: 12px;
+  padding: 4px 8px;
+  font-family: var(--font-mono, Consolas, monospace);
+  font-size: 10px;
+  color: #b9d8b9;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(110, 199, 110, 0.30);
+  border-radius: 3px;
+  opacity: 0.7;
+  transition: opacity 600ms ease;
+}
+.dev-diag.hidden { opacity: 0; }
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRFloatingText = {
+  _nextId: 1,
+  _count: 0,
+
+  add(data) {
+    if (!data || typeof data.value !== "number") return;
+    const stage = document.querySelector(".ft-stage");
+    if (!stage) return;
+
+    const node = document.createElement("div");
+    node.className = "ft-num" + (data.isCritical || data.kind === "critical" ? " critical" : "")
+                   + (data.kind === "heal" ? " heal" : "");
+    node.textContent = data.kind === "heal"
+      ? "+" + Math.round(Math.abs(data.value))
+      : Math.round(Math.abs(data.value));
+
+    // 屏幕坐标 → vw/vh，避免 viewport 缩放时偏位
+    const vw = data.viewportW || window.innerWidth  || 1920;
+    const vh = data.viewportH || window.innerHeight || 1080;
+    const x = ((data.screenX || vw / 2) / vw) * 100;
+    const y = ((data.screenY || vh / 2) / vh) * 100;
+    node.style.left = x + "%";
+    node.style.top  = y + "%";
+
+    stage.appendChild(node);
+    node.addEventListener("animationend", () => node.remove(), { once: true });
+
+    ++this._count;
+    const diag = document.querySelector(".dev-diag");
+    if (diag) {
+      diag.textContent = "floating-text fired ×" + this._count;
+      diag.classList.remove("hidden");
+      clearTimeout(this._diagTimer);
+      this._diagTimer = setTimeout(() => diag.classList.add("hidden"), 4000);
+    }
+  }
+};
+
+ue.interface.addFloatingText = function(data) {
+  window.SRFloatingText.add(data);
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRBridge.ready("startup-web-floating-text");
+});
+</script>
+</head>
+<body>
+<main class="ft-stage">
+  <div class="dev-diag hidden"></div>
+</main>
+</body>
+</html>

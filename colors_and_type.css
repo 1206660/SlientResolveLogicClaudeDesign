@@ -1,0 +1,174 @@
+/* ==========================================================================
+ * 一介·寒土孤山 — Colors & Type
+ * Ink theme (冷白宣纸 · primary) + Default 楷墨 theme (暖木朱砂 · dark variant)
+ *
+ * Loaded directly by preview cards and UI kits. Mirrors the runtime tokens in
+ * source/WebLogin_Ink/assets/common.css.
+ * ========================================================================== */
+
+/* ---------- Fonts ---------- */
+@font-face {
+  font-family: "KaiBrush";
+  /* 钟齐马善政毛笔楷书 — the licensed runtime brush 楷书 used for all display
+   * type in the game. Shipped under fonts/ in this design system. */
+  src: url("fonts/ZhongQiMaShanZhengBrushKai.ttf") format("truetype"),
+       local("KaiBrush"), local("STKaiti"), local("KaiTi");
+  font-weight: 400 900;
+  font-display: swap;
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root {
+  /* === Ink theme · 冷白宣纸 (primary) ============================== */
+  --ink-0:        #080A0B;   /* deepest ink */
+  --ink-1:        #161B1F;   /* body ink */
+  --ink-2:        #2A3238;   /* mid ink */
+  --ink-black:    #050607;   /* hardest stroke */
+  --ink-wash:     rgba(37, 45, 52, 0.26);
+
+  --paper-bg:     #E8EEF6;   /* page background */
+  --paper:        #F8FBFF;   /* near-white paper */
+  --paper-2:      #ECF2F8;
+  --paper-dim:    #CBD5DF;
+  --paper-mute:   #7E8D9A;
+
+  --line:         rgba(35, 43, 50, 0.12);
+  --line-mid:     rgba(35, 43, 50, 0.24);
+
+  /* 朱砂 vermilion — the seal color, used sparingly */
+  --zhusha:        #8A2E28;
+  --zhusha-bright: #A8483F;
+  --zhusha-deep:   #5B1E1A;
+  --zhusha-glow:   rgba(138, 46, 40, 0.24);
+  --seal-stamp:    #7C2A24;
+
+  /* Cool greys used as accents in Ink theme */
+  --gold:          #9AA8B4;       /* (note: in Ink theme this is desaturated) */
+  --bamboo-green:  #6C7C85;
+  --bamboo-light:  #AAB7C1;
+
+  /* === Default 楷墨 theme · 暖木朱砂 (dark variant — combat/inventory/skills) === */
+  --warm-ink-0:    #0A0907;
+  --warm-ink-1:    #14110D;
+  --warm-ink-2:    #1F1A14;
+  --warm-paper:    #EDDFC2;
+  --warm-paper-2:  #D9C9A6;
+  --warm-paper-dim:#A8997D;
+  --warm-paper-mute:#6B5F4D;
+  --warm-line:     rgba(237, 223, 194, 0.10);
+  --warm-line-mid: rgba(237, 223, 194, 0.18);
+
+  /* In the warm Default theme, 朱砂 is brighter (more like Cinnabar lacquer) */
+  --warm-zhusha:        #B83A1C;
+  --warm-zhusha-bright: #D85528;
+  --warm-zhusha-deep:   #8A2810;
+  --warm-zhusha-glow:   rgba(216, 85, 40, 0.55);
+  --warm-gold:          #C9A24B;
+
+  /* Combat HUD-only semantic colors */
+  --blood: #B83A1C;
+  --jade:  #9DD0B8;
+
+  /* === Fonts === */
+  --font-kai:   "KaiBrush", "STKaiti", KaiTi, "楷体", "Songti SC", "Noto Serif SC", serif;
+  --font-mono:  "JetBrains Mono", Consolas, monospace;
+  --font-body:  "Noto Serif SC", "Songti SC", "STKaiti", serif;
+
+  /* === Type scale === */
+  --type-display:   clamp(88px, 8.8vw, 148px);  /* title-main 一介 */
+  --type-h1:        clamp(40px, 3.6vw, 56px);   /* page titles */
+  --type-h2:        clamp(28px, 2.4vw, 36px);   /* section headers */
+  --type-h3:        22px;                       /* card / row titles */
+  --type-body:      15px;                       /* body copy */
+  --type-small:     13px;
+  --type-caption:   11px;                       /* mono caption / footer-meta */
+  --type-tag:       10px;                       /* tag / kbd-style */
+
+  /* Letter-spacing — 楷书 always wants space */
+  --tracking-tight:    0.08em;
+  --tracking-base:     0.18em;
+  --tracking-loose:    0.24em;
+  --tracking-display:  0.32em;
+  --tracking-mono:     0.20em;
+
+  /* === Spacing & radii === */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 22px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sharp: 0;        /* nearly everything is sharp; we are paper, not glass */
+  --radius-soft:  3px;      /* dialogue panels */
+  --radius-pill:  999px;    /* kbd capsules */
+
+  /* === Shadows / elevation === */
+  --shadow-paper-1: 0 8px 18px rgba(66, 78, 88, 0.15), inset 0 0 0 1px rgba(255,255,255,0.28);
+  --shadow-paper-2: 0 18px 52px rgba(96, 115, 132, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.30);
+  --shadow-paper-3: 0 30px 88px rgba(87, 104, 119, 0.18), inset 0 0 0 1px rgba(255,255,255,0.48);
+  --shadow-warm-1:  inset 0 0 0 1px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.6);
+  --shadow-warm-2:  0 4px 12px rgba(0, 0, 0, 0.55), 0 0 18px var(--warm-zhusha-glow);
+
+  /* === Motion === */
+  --ease-out: cubic-bezier(0.2, 0.78, 0.16, 1);
+  --duration-fast:   120ms;
+  --duration-base:   180ms;
+  --duration-page:   240ms;
+}
+
+/* ==========================================================================
+ * Semantic element styles — apply when this stylesheet is loaded raw
+ * ========================================================================== */
+html, body {
+  background: var(--paper-bg);
+  color: var(--ink-1);
+  font-family: var(--font-kai);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-family: var(--font-kai);
+  font-size: var(--type-h1);
+  font-weight: 900;
+  letter-spacing: var(--tracking-display);
+  color: var(--ink-black);
+  margin: 0;
+}
+h2 {
+  font-family: var(--font-kai);
+  font-size: var(--type-h2);
+  font-weight: 900;
+  letter-spacing: var(--tracking-loose);
+  color: var(--ink-1);
+  margin: 0;
+}
+h3 {
+  font-family: var(--font-kai);
+  font-size: var(--type-h3);
+  font-weight: 700;
+  letter-spacing: var(--tracking-base);
+  color: var(--ink-1);
+  margin: 0;
+}
+p {
+  font-family: var(--font-body);
+  font-size: var(--type-body);
+  line-height: 1.72;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  margin: 0 0 var(--space-3);
+}
+small, .caption {
+  font-family: var(--font-mono);
+  font-size: var(--type-caption);
+  letter-spacing: var(--tracking-mono);
+  color: var(--paper-mute);
+}
+code, kbd, .mono {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  letter-spacing: 0.10em;
+}

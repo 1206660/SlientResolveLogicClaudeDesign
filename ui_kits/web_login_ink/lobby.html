@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN" data-sr-page="lobby">
+<head>
+<meta charset="utf-8">
+<title>UI Kit · 一介 · Ink</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; }
+  body {
+    width: 1280px; height: 820px;
+    position: relative;
+    color: var(--ink-1);
+    font-family: var(--font-kai);
+    background:
+      radial-gradient(ellipse 26vw 18vh at 51% 32%, rgba(255,255,255,.92), transparent 72%),
+      radial-gradient(ellipse 48vw 36vh at 51% 56%, rgba(213,225,238,.44), transparent 78%),
+      radial-gradient(ellipse 20vw 16vh at 9% 94%, rgba(115,132,145,.30), transparent 72%),
+      radial-gradient(ellipse 24vw 20vh at 86% 91%, rgba(190,202,214,.24), transparent 74%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='71'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 48%, #DCE6EF 100%);
+  }
+  body::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 28vh;
+    pointer-events: none; z-index: 0;
+    background:
+      linear-gradient(0deg, rgba(36,43,48,.30), transparent 65%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 420' preserveAspectRatio='none'><path d='M0 330 C160 270 260 355 410 300 C520 260 640 350 790 300 C940 245 1030 345 1200 292 C1370 240 1480 335 1600 278 L1600 420 L0 420 Z' fill='%233A4146' opacity='.32'/><path d='M370 310 C445 265 512 285 610 250 C548 316 470 333 370 310 Z' fill='%231D2225' opacity='.28'/><path d='M0 405 C250 360 460 393 700 350 C980 302 1210 388 1600 330 L1600 420 L0 420 Z' fill='%23080A0B' opacity='.20'/></svg>");
+  }
+
+  /* birds */
+  .bird { position: absolute; width: 22px; height: 9px; z-index: 2; }
+  .bird::before, .bird::after {
+    content: ""; position: absolute; top: 0; width: 11px; height: 9px;
+    border: 1.5px solid rgba(0,0,0,0.62); border-radius: 50% 50% 0 0; border-bottom: none;
+  }
+  .bird::before { left: 0; transform: rotate(-22deg); }
+  .bird::after  { right: 0; transform: rotate(22deg); }
+  .b1 { top: 88px; left: 22%; }
+  .b2 { top: 102px; left: 30%; transform: scale(.78); }
+  .b3 { top: 92px; left: 36%; transform: scale(.88); }
+
+  /* === page-shell tabs === */
+  .page-shell {
+    position: absolute; top: 16px; left: 56px; z-index: 6;
+    display: inline-flex; padding: 4px;
+    background: rgba(248,251,255,0.42);
+    border: 1px solid rgba(38,45,51,0.14);
+    backdrop-filter: blur(8px);
+  }
+  .tab {
+    padding: 7px 16px 9px;
+    font-family: var(--font-kai); font-size: 14px; font-weight: 700;
+    letter-spacing: 0.18em; color: rgba(5,7,8,0.58); cursor: pointer;
+  }
+  .tab.active {
+    background: rgba(255,255,255,0.86); color: var(--ink-black);
+    box-shadow: inset 0 -2px 0 rgba(5,6,7,0.78);
+  }
+
+  /* corner save toast */
+  .save-toast {
+    position: absolute; top: 18px; right: 56px; z-index: 6;
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: rgba(255,255,255,0.78);
+    border: 1px solid rgba(38,45,51,0.18);
+    box-shadow: 0 14px 36px rgba(96,115,132,0.16), inset 0 0 0 1px rgba(255,255,255,0.4);
+    backdrop-filter: blur(10px);
+  }
+  .save-mark { width: 7px; height: 7px; background: var(--zhusha); border-radius: 50%; box-shadow: 0 0 0 3px rgba(138,46,40,0.18); }
+  .t-label { font-family: var(--font-kai); font-size: 13px; font-weight: 900; letter-spacing: 0.22em; color: var(--ink-black); }
+  .t-meta  { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.20em; color: var(--paper-mute); margin-top: 1px; }
+
+  /* === main grid === */
+  .stage {
+    position: absolute; inset: 78px 56px 72px 56px; z-index: 4;
+    display: grid; grid-template-columns: 380px 1fr 320px;
+    gap: 38px; align-items: start;
+  }
+
+  /* LEFT — brand + lobby menu */
+  .brand-eyebrow {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.32em;
+    color: var(--paper-mute); text-transform: uppercase; margin-bottom: 14px;
+  }
+  .brand-stack { position: relative; padding: 12px 24px 18px; display: inline-block; }
+  .brand-stack::before {
+    content: ""; position: absolute; top: 0; left: 50%;
+    width: 70px; height: 220px;
+    transform: translateX(-50%) rotate(-2deg);
+    background: linear-gradient(180deg, #060708 0%, #1A1F23 60%, rgba(20,24,28,0.55) 100%);
+    border-radius: 70% 50% 60% 42%;
+    box-shadow: 0 18px 36px rgba(8,12,16,0.42), inset -6px 0 12px rgba(255,255,255,0.04);
+  }
+  .brand-vertical {
+    position: relative; z-index: 1;
+    writing-mode: vertical-rl; text-orientation: upright;
+    font-family: var(--font-kai); font-size: 96px; font-weight: 900;
+    letter-spacing: 0.10em; color: #F8FBFF;
+    transform: rotate(-2deg);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.4), 0 14px 28px rgba(0,0,0,0.5);
+  }
+  .brand-seal {
+    position: absolute; bottom: 4px; right: -6px; z-index: 2;
+    width: 38px; height: 38px;
+    background: var(--zhusha); color: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-kai); font-size: 18px; font-weight: 900;
+    transform: rotate(-4deg);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.18), 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .brand-seal::before { content: ""; position: absolute; inset: 3px; border: 1px solid rgba(255,255,255,0.25); }
+  .subtitle { margin-top: 22px; font-family: var(--font-kai); font-size: 20px; font-weight: 900; letter-spacing: 0.30em; color: var(--ink-black); }
+  .tag { margin-top: 8px; font-family: var(--font-kai); font-size: 12px; letter-spacing: 0.32em; color: rgba(5,7,8,0.6); }
+
+  /* MIDDLE — menu list */
+  .menu-list { display: flex; flex-direction: column; gap: 8px; max-width: 460px; margin-top: 24px; }
+  .menu-item {
+    display: flex; align-items: baseline; gap: 16px;
+    padding: 11px 18px;
+    background: rgba(248,251,255,0.34);
+    border: 1px solid rgba(38,45,51,0.14);
+    backdrop-filter: blur(8px);
+    transition: all 160ms var(--ease-out);
+  }
+  .menu-item:hover { background: rgba(255,255,255,0.66); transform: translateX(-4px); }
+  .menu-item.active {
+    background: rgba(255,255,255,0.78);
+    box-shadow: inset 0 -2px 0 rgba(5,6,7,0.38);
+  }
+  .mi-label { font-family: var(--font-kai); font-size: 19px; font-weight: 900; letter-spacing: 0.24em; color: var(--ink-black); }
+  .menu-item.active .mi-label { letter-spacing: 0.28em; }
+  .mi-hint { font-family: var(--font-kai); font-size: 11px; letter-spacing: 0.18em; color: var(--paper-mute); }
+
+  /* RIGHT — content card (load slot detail) */
+  .panel {
+    background: rgba(255,255,255,0.66);
+    border: 1px solid rgba(38,45,51,0.18);
+    box-shadow: 0 18px 52px rgba(96,115,132,0.14), inset 0 0 0 1px rgba(255,255,255,0.4);
+    backdrop-filter: blur(10px);
+    padding: 22px 24px;
+  }
+  .panel-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 10px; margin-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel-head h3 { margin: 0; font-family: var(--font-kai); font-size: 17px; font-weight: 900; letter-spacing: 0.28em; color: var(--ink-black); }
+  .panel-head .meta { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.22em; color: var(--paper-mute); text-transform: uppercase; }
+  .slot { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .slot:last-of-type { border-bottom: 0; }
+  .slot-num { font-family: var(--font-kai); font-size: 22px; font-weight: 900; color: var(--ink-black); width: 28px; }
+  .slot-info { flex: 1; }
+  .slot-name { font-family: var(--font-kai); font-size: 13px; font-weight: 900; letter-spacing: 0.18em; color: var(--ink-black); }
+  .slot-meta { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.18em; color: var(--paper-mute); margin-top: 2px; }
+  .slot.active { background: rgba(255,255,255,0.78); border-bottom-color: transparent; padding: 10px 12px; margin: 0 -12px; box-shadow: inset 0 -2px 0 rgba(5,6,7,0.38); }
+
+  .panel + .panel { margin-top: 14px; }
+
+  /* sliders */
+  .slider-row { display: flex; align-items: center; gap: 14px; padding: 6px 0; }
+  .s-lbl { font-family: var(--font-kai); font-size: 12px; font-weight: 700; letter-spacing: 0.22em; min-width: 60px; color: var(--ink-black); }
+  .track { flex: 1; height: 3px; background: rgba(35,43,50,0.18); position: relative; }
+  .fill  { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink-black); }
+  .knob  { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 11px; height: 11px; background: var(--paper); border: 1.5px solid var(--ink-black); }
+  .v { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; color: var(--ink-1); min-width: 24px; text-align: right; }
+
+  /* footer prompt bar */
+  .footer-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 64px; padding: 0 56px; z-index: 6;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(0deg, rgba(20,24,28,0.42), rgba(20,24,28,0.18) 60%, transparent);
+  }
+  .build-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.20em; color: rgba(248,251,255,0.78); }
+  .prompts { display: inline-flex; align-items: center; gap: 22px; }
+  .prompt { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-kai); font-size: 13px; letter-spacing: 0.22em; color: rgba(248,251,255,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+  .key {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.32), 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .key.cross    { background: #2A6BD0; color: white; }
+  .key.circle   { background: #C94A3A; color: white; }
+  .key.triangle { background: #2BA589; color: white; }
+
+</style>
+</head>
+<body>
+  <nav class="page-shell">
+    <div class="tab active">门厅</div>
+    <div class="tab">地图</div>
+    <div class="tab">日志</div>
+    <div class="tab">行囊</div>
+    <div class="tab">武学</div>
+    <div class="tab">议政厅</div>
+  </nav>
+
+  <div class="save-toast">
+    <div class="save-mark"></div>
+    <div>
+      <div class="t-label">自 动 存 档</div>
+      <div class="t-meta">CHAPTER 03 · 二〇二六/四/二四 · 廿二时</div>
+    </div>
+  </div>
+
+  <div class="bird b1"></div><div class="bird b2"></div><div class="bird b3"></div>
+
+  <main class="stage">
+    <!-- LEFT: brand -->
+    <section>
+      <div class="brand-eyebrow">门厅 / lobby · ink theme</div>
+      <div class="brand-stack">
+        <div class="brand-vertical">一介</div>
+        <div class="brand-seal">介</div>
+      </div>
+      <div class="subtitle">寒 土 孤 山</div>
+      <div class="tag">凡人的宁静 · 时代的碾碎</div>
+    </section>
+
+    <!-- MIDDLE: menu -->
+    <section>
+      <div class="brand-eyebrow">主 菜 单 / main menu</div>
+      <div class="menu-list">
+        <div class="menu-item active">
+          <span class="mi-label">继续旅途</span>
+          <span class="mi-hint">第三幕 · 山村回忆 · 灵儿戏水</span>
+        </div>
+        <div class="menu-item">
+          <span class="mi-label">新的开始</span>
+          <span class="mi-hint">从头再来</span>
+        </div>
+        <div class="menu-item">
+          <span class="mi-label">载入存档</span>
+          <span class="mi-hint">7 个存档</span>
+        </div>
+        <div class="menu-item">
+          <span class="mi-label">设　定</span>
+          <span class="mi-hint">画面 · 声音 · 操作</span>
+        </div>
+        <div class="menu-item">
+          <span class="mi-label">阅　览</span>
+          <span class="mi-hint">人物 · 兵器 · 地志</span>
+        </div>
+        <div class="menu-item">
+          <span class="mi-label">退　出</span>
+          <span class="mi-hint">离开寒山</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: panels -->
+    <section>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>存 档 · 七 卷</h3>
+          <span class="meta">SAVE · 0/7</span>
+        </div>
+        <div class="slot active">
+          <div class="slot-num">壹</div>
+          <div class="slot-info">
+            <div class="slot-name">山村回忆</div>
+            <div class="slot-meta">CH.03 · 已游 12 时 · 廿二时四一分</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">贰</div>
+          <div class="slot-info">
+            <div class="slot-name">寒山初渡</div>
+            <div class="slot-meta">CH.02 · 已游 06 时 · 申时</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="slot-num">叁</div>
+          <div class="slot-info">
+            <div class="slot-name">客栈夜话</div>
+            <div class="slot-meta">CH.01 · 已游 02 时 · 戌时</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>议 政 · 略</h3>
+          <span class="meta">SETTINGS</span>
+        </div>
+        <div class="slider-row">
+          <span class="s-lbl">画 面</span>
+          <div class="track"><div class="fill" style="width: 72%;"></div><div class="knob" style="left: 72%;"></div></div>
+          <span class="v">72</span>
+        </div>
+        <div class="slider-row">
+          <span class="s-lbl">音 量</span>
+          <div class="track"><div class="fill" style="width: 48%;"></div><div class="knob" style="left: 48%;"></div></div>
+          <span class="v">48</span>
+        </div>
+        <div class="slider-row">
+          <span class="s-lbl">字 距</span>
+          <div class="track"><div class="fill" style="width: 60%;"></div><div class="knob" style="left: 60%;"></div></div>
+          <span class="v">60</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer-bar">
+    <div class="build-tag">YIJIE / HANWRAITH · INTERNAL 〇·壹·〇</div>
+    <div class="prompts">
+      <span class="prompt"><span class="key cross">✕</span> 确 认</span>
+      <span class="prompt"><span class="key circle">○</span> 返 回</span>
+      <span class="prompt"><span class="key triangle">△</span> 阅 览</span>
+    </div>
+  </footer>
+</body>
+</html>

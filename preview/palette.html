@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Palette · 一介</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin:0; padding:0; }
+  body {
+    width: 1100px; min-height: 760px;
+    padding: 48px 56px;
+    background:
+      radial-gradient(ellipse 60vw 30vh at 50% 30%, rgba(255,255,255,.85), transparent 72%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='9'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 48%, #DCE6EF 100%);
+    color: var(--ink-1);
+  }
+  .head { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.32em; color: var(--paper-mute); text-transform: uppercase; margin-bottom: 8px; }
+  h2 { font-family: var(--font-kai); font-weight: 900; font-size: 28px; letter-spacing: 0.22em; margin: 0 0 22px; color: var(--ink-black); }
+  .group { margin-bottom: 36px; }
+  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .sw {
+    aspect-ratio: 1.1/1;
+    background: var(--bg, #fff);
+    border: 1px solid var(--line);
+    padding: 12px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    color: var(--fg, #111);
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.16em;
+  }
+  .sw .name { font-family: var(--font-kai); font-size: 13px; font-weight: 900; letter-spacing: 0.18em; }
+  .sw .hex { opacity: 0.78; }
+  .row-warm {
+    background: linear-gradient(180deg, #1A0F06 0%, #2A1B0E 50%, #3A2616 100%);
+    padding: 22px;
+  }
+  .row-warm .sw { border-color: rgba(220, 184, 122, 0.28); }
+  .ratio-rule {
+    margin-top: 22px;
+    padding: 18px 22px;
+    background: rgba(255,255,255,0.46);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(6px);
+  }
+  .ratio-rule .b { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+  .bar { height: 14px; flex: 1; display: flex; }
+  .bar div:nth-child(1) { flex: 95; background: var(--paper); border-right: 1px solid rgba(0,0,0,0.06); }
+  .bar div:nth-child(2) { flex: 4; background: var(--bamboo-green); }
+  .bar div:nth-child(3) { flex: 1; background: var(--zhusha); }
+  .ratio-rule p { font-family: var(--font-body); font-size: 13px; line-height: 1.7; letter-spacing: 0.04em; color: rgba(5,7,8,0.74); margin: 0; }
+</style>
+</head>
+<body>
+  <div class="head">一介 / palette</div>
+  <h2>水墨 · 冷白宣纸 · 朱砂</h2>
+
+  <div class="group">
+    <div class="head">Ink theme · primary</div>
+    <div class="swatches">
+      <div class="sw" style="--bg:#F8FBFF;--fg:#161B1F;"><span class="name">paper</span><span class="hex">#F8FBFF</span></div>
+      <div class="sw" style="--bg:#E8EEF6;--fg:#161B1F;"><span class="name">paper-bg</span><span class="hex">#E8EEF6</span></div>
+      <div class="sw" style="--bg:#CBD5DF;--fg:#161B1F;"><span class="name">paper-dim</span><span class="hex">#CBD5DF</span></div>
+      <div class="sw" style="--bg:#7E8D9A;--fg:#F8FBFF;"><span class="name">paper-mute</span><span class="hex">#7E8D9A</span></div>
+      <div class="sw" style="--bg:#161B1F;--fg:#F8FBFF;"><span class="name">ink-1</span><span class="hex">#161B1F</span></div>
+      <div class="sw" style="--bg:#050607;--fg:#F8FBFF;"><span class="name">ink-black</span><span class="hex">#050607</span></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="head">Accents · 朱砂 / 竹绿</div>
+    <div class="swatches">
+      <div class="sw" style="--bg:#8A2E28;--fg:#F8FBFF;"><span class="name">朱砂 · zhusha</span><span class="hex">#8A2E28</span></div>
+      <div class="sw" style="--bg:#A8483F;--fg:#F8FBFF;"><span class="name">zhusha-bright</span><span class="hex">#A8483F</span></div>
+      <div class="sw" style="--bg:#5B1E1A;--fg:#F8FBFF;"><span class="name">zhusha-deep</span><span class="hex">#5B1E1A</span></div>
+      <div class="sw" style="--bg:#6C7C85;--fg:#F8FBFF;"><span class="name">竹 · bamboo</span><span class="hex">#6C7C85</span></div>
+      <div class="sw" style="--bg:#AAB7C1;--fg:#161B1F;"><span class="name">bamboo-light</span><span class="hex">#AAB7C1</span></div>
+      <div class="sw" style="--bg:#9AA8B4;--fg:#161B1F;"><span class="name">grey-accent</span><span class="hex">#9AA8B4</span></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="head">Default 楷墨 theme · combat / inventory · dark variant</div>
+    <div class="row-warm">
+      <div class="swatches" style="grid-template-columns: repeat(6, 1fr);">
+        <div class="sw" style="--bg:#14110D;--fg:#EDDFC2;"><span class="name">warm-ink-1</span><span class="hex">#14110D</span></div>
+        <div class="sw" style="--bg:#3A2616;--fg:#EDDFC2;"><span class="name">warm-wood</span><span class="hex">#3A2616</span></div>
+        <div class="sw" style="--bg:#EDDFC2;--fg:#14110D;"><span class="name">warm-paper</span><span class="hex">#EDDFC2</span></div>
+        <div class="sw" style="--bg:#D85528;--fg:#14110D;"><span class="name">朱砂 bright</span><span class="hex">#D85528</span></div>
+        <div class="sw" style="--bg:#B83A1C;--fg:#EDDFC2;"><span class="name">血 · blood</span><span class="hex">#B83A1C</span></div>
+        <div class="sw" style="--bg:#C9A24B;--fg:#14110D;"><span class="name">金 · gold</span><span class="hex">#C9A24B</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ratio-rule">
+    <div class="head">Distribution rule</div>
+    <div class="b">
+      <span class="caption" style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.20em;color:var(--paper-mute);min-width: 80px;">95 / 4 / 1</span>
+      <div class="bar"><div></div><div></div><div></div></div>
+    </div>
+    <p style="margin-top: 12px;">95% paper-and-ink &mdash; most pixels are off-white or off-black. 4% cool ink-wash greys for distance & secondary chrome. 1% 朱砂 vermilion: one seal, one tab underline, one focus ring per screen. <strong>Never</strong> as a flood-fill.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一介 · 暫 · 水墨军帐</title>
+<link rel="stylesheet" href="assets/common.css">
+<style>
+/* === 水墨 · 军帐驻足 暂停页 ============================================
+ * 布局重构：朱漆木匾 + 巨型"暫"朱印 + 四块虎符 2x2 方阵
+ * 顶端帐幕飘锯齿 + "駐足"绶带悬挂在 panel 顶
+ * SRPause 命名空间、setPauseData、SRBridge 协议层一致保留。
+ * ============================================================================ */
+
+.stage {
+  background:
+    radial-gradient(ellipse 50% 30% at 50% 75%, rgba(220, 74, 32, 0.18), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 50%, rgba(184, 58, 28, 0.10), transparent 70%),
+    rgba(8, 5, 4, 0.85);
+  display: flex; align-items: center; justify-content: center;
+}
+.stage::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 22px;
+  background: linear-gradient(180deg, var(--zhusha-deep) 0%, transparent 100%);
+  clip-path: polygon(
+    0 0, 5% 100%, 10% 0, 15% 100%, 20% 0, 25% 100%, 30% 0,
+    35% 100%, 40% 0, 45% 100%, 50% 0, 55% 100%, 60% 0,
+    65% 100%, 70% 0, 75% 100%, 80% 0, 85% 100%, 90% 0,
+    95% 100%, 100% 0
+  );
+}
+
+.panel {
+  position: relative;
+  width: min(560px, 80vw);
+  padding: 56px 48px 44px;
+  background:
+    radial-gradient(ellipse 60% 30% at 50% 0%, rgba(184, 58, 28, 0.18), transparent 70%),
+    repeating-linear-gradient(0deg,
+      rgba(0, 0, 0, 0.06) 0px, rgba(0, 0, 0, 0.06) 1px,
+      transparent 1px, transparent 5px),
+    linear-gradient(180deg, #2A1B0E 0%, #4A2E16 30%, #6E4824 50%, #4A2E16 70%, #2A1B0E 100%);
+  border-top: 8px solid #2A1B0E;
+  border-bottom: 8px solid #2A1B0E;
+  border-left: 4px solid var(--zhusha);
+  border-right: 4px solid var(--zhusha);
+  box-shadow:
+    0 28px 70px rgba(184, 58, 28, 0.42),
+    inset 0 0 0 2px rgba(220, 184, 122, 0.32);
+  text-align: center;
+  z-index: 2;
+}
+.panel::before {
+  content: "";
+  position: absolute;
+  top: 4px; left: 12px; right: 12px;
+  height: 4px;
+  background:
+    radial-gradient(circle 2px at 5% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 25% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 50% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 75% 50%, #BC8F3A, transparent 55%),
+    radial-gradient(circle 2px at 95% 50%, #BC8F3A, transparent 55%);
+}
+.panel::after {
+  content: "駐 足";
+  position: absolute;
+  top: -22px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-kai);
+  font-size: 14px; font-weight: 900;
+  letter-spacing: 0.4em;
+  background: var(--zhusha);
+  color: var(--paper);
+  padding: 6px 18px;
+  border: 3px solid #2A1B0E;
+  box-shadow: 0 0 14px var(--zhusha-glow), 0 4px 8px rgba(0, 0, 0, 0.6);
+}
+
+.kanji {
+  display: inline-block;
+  position: relative;
+  font-family: var(--font-kai);
+  font-size: 80px; font-weight: 900;
+  letter-spacing: 0.05em;
+  padding: 18px 32px;
+  color: var(--paper);
+  background: var(--zhusha);
+  border: 4px solid #2A1B0E;
+  text-shadow:
+    0 0 24px rgba(255, 220, 170, 0.55),
+    0 4px 8px rgba(0, 0, 0, 0.65);
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 222, 170, 0.4),
+    inset 0 0 18px rgba(0, 0, 0, 0.45),
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 0 36px var(--zhusha-glow);
+  margin-bottom: 12px;
+  transform: rotate(-2deg);
+}
+
+.subline {
+  font-family: var(--font-kai);
+  font-size: 13px; font-weight: 900;
+  letter-spacing: 0.4em;
+  color: rgba(255, 222, 170, 0.85);
+  margin-bottom: 28px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.subline::before { content: "❖ "; color: var(--zhusha-bright); }
+.subline::after  { content: " ❖"; color: var(--zhusha-bright); }
+
+.divider {
+  width: 80%; height: 2px;
+  margin: 0 auto 28px;
+  background: linear-gradient(90deg, transparent 4%, rgba(220, 184, 122, 0.45) 20%, var(--zhusha) 50%, rgba(220, 184, 122, 0.45) 80%, transparent 96%);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+  position: relative;
+}
+.divider::before, .divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 10px; height: 10px;
+  background: var(--zhusha);
+  transform: translateY(-50%) rotate(45deg);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+}
+.divider::before { left: 8%; }
+.divider::after  { right: 8%; }
+
+.menu {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.menu-item {
+  position: relative;
+  padding: 18px 14px 22px;
+  font-family: var(--font-kai);
+  font-size: 22px; font-weight: 700;
+  letter-spacing: 0.32em;
+  color: var(--paper);
+  background:
+    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(184, 58, 28, 0.16), transparent 70%),
+    linear-gradient(180deg, #3A2614 0%, #2A1B0E 60%, #1A1108 100%);
+  border: 2px solid #6E4824;
+  border-radius: 2px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.3, 0.9, 0.4, 1);
+  box-shadow:
+    inset 0 0 0 1px rgba(220, 184, 122, 0.22),
+    0 4px 10px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.menu-item::before {
+  content: "";
+  position: absolute;
+  top: 4px; left: 50%; transform: translateX(-50%);
+  width: 8px; height: 8px;
+  background: radial-gradient(circle, #BC8F3A 30%, #6E4824 70%);
+  border-radius: 50%;
+}
+.menu-item::after {
+  content: "令";
+  position: absolute;
+  bottom: 4px; right: 8px;
+  font-family: var(--font-kai);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgba(220, 184, 122, 0.32);
+}
+.menu-item:hover {
+  transform: translateY(-3px);
+  border-color: rgba(220, 184, 122, 0.55);
+}
+.menu-item.active {
+  transform: translateY(-4px);
+  border-color: var(--zhusha-bright);
+  background:
+    radial-gradient(ellipse 90% 50% at 50% 0%, rgba(184, 58, 28, 0.32), transparent 70%),
+    linear-gradient(180deg, #5C3318 0%, #3A2614 60%, #2A1B0E 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 222, 170, 0.45),
+    0 0 22px var(--zhusha-glow),
+    0 6px 16px rgba(0, 0, 0, 0.6);
+  font-weight: 900;
+}
+.menu-item.active::before {
+  background: radial-gradient(circle, var(--zhusha-bright) 30%, var(--zhusha-deep) 70%);
+  box-shadow: 0 0 8px var(--zhusha-glow);
+}
+.menu-item small {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-kai);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.28em;
+  color: rgba(220, 184, 122, 0.65);
+}
+.menu-item.active small {
+  color: rgba(255, 222, 170, 0.85);
+}
+
+.hint {
+  margin-top: 24px;
+  font-family: var(--font-kai);
+  font-size: 12px; font-weight: 900;
+  letter-spacing: 0.4em;
+  color: rgba(255, 222, 170, 0.7);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.32);
+  padding: 4px 14px;
+  display: inline-block;
+  border: 1px solid rgba(220, 184, 122, 0.32);
+}
+</style>
+<script src="assets/ue-bridge.js"></script>
+<script>
+window.SRPause = {
+  state: {
+    selectedIndex: 0,
+    options: [
+      { id: "Resume",   label: "继续",     hint: "回到当前场景"     },
+      { id: "Settings", label: "设定",     hint: "画面 · 声音 · 操作"  },
+      { id: "Title",    label: "返回标题", hint: "保存进度并回到标题画面" },
+      { id: "Quit",     label: "退出",     hint: "离开游戏"         }
+    ]
+  },
+
+  setSelection(idx) {
+    const n = this.state.options.length;
+    if (!n) return;
+    this.state.selectedIndex = ((idx % n) + n) % n;
+    this.renderMenu();
+  },
+  moveUp()   { this.setSelection(this.state.selectedIndex - 1); },
+  moveDown() { this.setSelection(this.state.selectedIndex + 1); },
+  commit() {
+    const opt = this.state.options[this.state.selectedIndex];
+    if (!opt) return;
+    if (opt.id === "Resume") { SRPause.back(); return; }
+    if (opt.id === "Settings") { SRBridge.send("nav", { to: "settings" }); return; }
+    SRBridge.send("commit", { optionId: opt.id, label: opt.label });
+  },
+  back() { SRBridge.back("startup-web-pause"); },
+
+  renderMenu() {
+    const wrap = document.querySelector(".menu");
+    wrap.innerHTML = "";
+    this.state.options.forEach((opt, idx) => {
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = "menu-item" + (idx === this.state.selectedIndex ? " active" : "");
+      node.innerHTML = `${opt.label}<small>${opt.hint}</small>`;
+      node.addEventListener("mouseenter", () => this.setSelection(idx));
+      node.addEventListener("click", () => { this.setSelection(idx); this.commit(); });
+      wrap.appendChild(node);
+    });
+  }
+};
+
+ue.interface.setPauseData = function(data) {
+  if (data && Array.isArray(data.options)) {
+    window.SRPause.state.options = data.options;
+  }
+  if (data && typeof data.selectedIndex === "number") {
+    window.SRPause.state.selectedIndex = data.selectedIndex;
+  }
+  window.SRPause.renderMenu();
+};
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); SRPause.back(); }
+  else if (e.key === "Enter" || e.key === " ")     { e.preventDefault(); SRPause.commit(); }
+  else if (e.key === "ArrowUp"   || e.key === "w" || e.key === "W") { e.preventDefault(); SRPause.moveUp(); }
+  else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); SRPause.moveDown(); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  SRPause.renderMenu();
+  SRBridge.ready("startup-web-pause");
+});
+</script>
+</head>
+<body>
+<main class="stage">
+  <section class="panel">
+    <div class="kanji">暫</div>
+    <div class="subline">局 中 暫 停</div>
+    <div class="divider"></div>
+    <nav class="menu" aria-label="暂停菜单"></nav>
+    <div class="hint">↑↓ 选 · ✕ 定 · ○ 回</div>
+  </section>
+</main>
+</body>
+</html>
+
