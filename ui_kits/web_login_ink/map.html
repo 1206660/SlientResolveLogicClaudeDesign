@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="ink">
+<head>
+<meta charset="utf-8">
+<title>一介 · 山河图 · Map</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<link rel="stylesheet" href="nav-tabs.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; user-select: none; cursor: default; }
+  body {
+    width: 1280px; height: 720px; position: relative;
+    color: var(--ink-black); font-family: var(--font-kai);
+    --safe-x: 56px;
+  }
+  .stage {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 42vw 30vh at 49% 24%, rgba(255,255,255,.78), transparent 72%),
+      radial-gradient(ellipse 50vw 38vh at 52% 58%, rgba(214,226,238,.42), transparent 78%),
+      radial-gradient(ellipse 22vw 18vh at 9% 94%, rgba(115,132,145,.30), transparent 72%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='59'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 46%, #DDE6EF 100%);
+  }
+  .grain {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.10;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' seed='23'/><feColorMatrix values='0 0 0 0 0.72 0 0 0 0 0.78 0 0 0 0 0.84 0 0 0 0.22 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  .body {
+    position: absolute;
+    top: 64px; left: 0; right: 0; bottom: 60px;
+    z-index: 2;
+    display: grid; grid-template-columns: 1fr 360px;
+  }
+
+  .scroll {
+    position: relative; padding: 22px 16px 22px 28px;
+    overflow: hidden;
+  }
+  .scroll-inner {
+    position: relative; width: 100%; height: 100%;
+    background:
+      radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.55), transparent 75%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence baseFrequency='0.012 0.04' numOctaves='3' seed='17'/><feColorMatrix values='0 0 0 0 0.62 0 0 0 0 0.68 0 0 0 0 0.74 0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F4F8FC 0%, #E7EEF6 100%);
+    border: 1px solid rgba(15,20,24,.18);
+    box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 8px 22px rgba(20,28,36,.08);
+    overflow: hidden;
+    cursor: grab;
+  }
+  .scroll-inner.dragging { cursor: grabbing; }
+  .scroll-inner::before, .scroll-inner::after {
+    content: ""; position: absolute; left: 0; right: 0; height: 10px;
+    background: linear-gradient(180deg, rgba(35,43,50,.42), rgba(15,20,24,.7));
+    z-index: 5;
+  }
+  .scroll-inner::before { top: 0; }
+  .scroll-inner::after  { bottom: 0; }
+
+  .map-svg { width: 100%; height: 100%; display: block; }
+
+  /* base 山河墨线 */
+  .map-svg .land  { fill: rgba(72,86,98,.10); stroke: rgba(15,20,24,.55); stroke-width: .4; vector-effect: non-scaling-stroke; }
+  .map-svg .river { fill: none; stroke: rgba(35,68,98,.55); stroke-width: .6; vector-effect: non-scaling-stroke; stroke-dasharray: 2 1; }
+  .map-svg .road  { fill: none; stroke: rgba(15,20,24,.45); stroke-width: .35; vector-effect: non-scaling-stroke; stroke-dasharray: 1.4 1; }
+  .map-svg .mtn   { fill: none; stroke: rgba(15,20,24,.7); stroke-width: .45; vector-effect: non-scaling-stroke; }
+
+  /* 雾 — 未访区，2x 之前才显眼 */
+  .fog { fill: #DEE8F1; opacity: var(--fog-op, .82); transition: opacity .25s ease; }
+
+  /* 标记 pin — 远景才突出，缩近后淡出（仅山村南口） */
+  .pin-rect {
+    fill: rgba(248,251,255,.95);
+    stroke: var(--ink-black, #0F1418);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+    transition: fill .14s ease;
+  }
+  .pin-g.visited .pin-rect { fill: var(--ink-black, #0F1418); }
+  .pin-g.current .pin-rect { fill: var(--zhusha, #B83A1C); stroke: var(--zhusha, #B83A1C); }
+  .pin-g.locked  .pin-rect { fill: rgba(35,43,50,.18); stroke: rgba(35,43,50,.42); stroke-dasharray: 1 1; }
+
+  .pin-pulse {
+    fill: none; stroke: var(--zhusha, #B83A1C); stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    transform-origin: center; transform-box: fill-box;
+    animation: pulseRing 1.6s ease-in-out infinite;
+    opacity: .7;
+  }
+  @keyframes pulseRing {
+    0%   { transform: scale(.8); opacity: .8; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  .pin-label {
+    font-family: var(--font-kai); font-size: 2.4px; font-weight: 900;
+    letter-spacing: 0.2em; fill: var(--ink-black, #0F1418);
+    paint-order: stroke;
+    stroke: rgba(248,251,255,.95);
+    stroke-width: 1.2px;
+    stroke-linejoin: round;
+    text-anchor: middle;
+  }
+  .pin-g.locked .pin-label { fill: rgba(35,43,50,.5); }
+
+  /* 山村细节 — 由 zoom 控制 opacity */
+  #village-detail { opacity: var(--village-op, 0); transition: opacity .2s ease; pointer-events: var(--village-pe, none); }
+  #village-detail .v-fill   { fill: rgba(248,251,255,.92); stroke: var(--ink-black, #0F1418); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  #village-detail .v-roof   { fill: rgba(35,43,50,.8);   stroke: rgba(15,20,24,.85); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  #village-detail .v-line   { fill: none; stroke: var(--ink-black, #0F1418); stroke-width: .8; vector-effect: non-scaling-stroke; }
+  #village-detail .v-fence  { fill: none; stroke: rgba(35,43,50,.7); stroke-width: .5; vector-effect: non-scaling-stroke; stroke-dasharray: 1 .8; }
+  #village-detail .v-water  { fill: rgba(35,68,98,.32); stroke: rgba(35,68,98,.6); stroke-width: .6; vector-effect: non-scaling-stroke; }
+  #village-detail .v-fire   { fill: var(--zhusha, #B83A1C); }
+  #village-detail .v-smoke  { fill: none; stroke: rgba(35,43,50,.45); stroke-width: .8; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+  #village-detail .v-tree   { fill: rgba(46,68,52,.6); stroke: rgba(20,32,18,.85); stroke-width: .6; vector-effect: non-scaling-stroke; }
+  #village-detail .v-trunk  { stroke: rgba(46,30,14,.85); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  #village-detail .v-figure { fill: var(--ink-black, #0F1418); }
+  #village-detail .v-tag {
+    font-family: var(--font-kai); font-size: .42px; font-weight: 900;
+    letter-spacing: 0.32em; fill: var(--ink-black, #0F1418);
+    paint-order: stroke; stroke: rgba(248,251,255,.95); stroke-width: .25px;
+    stroke-linejoin: round; text-anchor: middle;
+  }
+
+  /* 子兴趣点（hotspot） */
+  .hot {
+    cursor: pointer;
+    --hot-r: .8;
+  }
+  .hot circle.ring {
+    fill: rgba(184,58,28,.06);
+    stroke: var(--zhusha, #B83A1C);
+    stroke-width: 1.2;
+    vector-effect: non-scaling-stroke;
+    transition: all .14s ease;
+  }
+  .hot:hover circle.ring,
+  .hot.active circle.ring { fill: rgba(184,58,28,.20); stroke-width: 2; }
+  .hot.active circle.ring {
+    animation: hotPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes hotPulse {
+    0%,100% { stroke-width: 2; }
+    50%     { stroke-width: 3; }
+  }
+  .hot text.label {
+    font-family: var(--font-kai); font-size: .55px; font-weight: 900;
+    letter-spacing: 0.20em; fill: var(--zhusha, #B83A1C);
+    paint-order: stroke; stroke: rgba(248,251,255,.95); stroke-width: .3px;
+    stroke-linejoin: round; text-anchor: middle;
+  }
+
+  /* HUD */
+  .compass {
+    position: absolute; top: 36px; right: 32px; z-index: 4;
+    width: 64px; height: 64px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-kai); font-size: 11px; letter-spacing: 0.32em;
+    color: rgba(20,24,26,.78);
+    border: 1px solid rgba(15,20,24,.32);
+    background: rgba(248,251,255,.62);
+  }
+  .compass::before {
+    content: "北"; position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-kai); font-size: 11px; font-weight: 900;
+    color: var(--ink-black);
+  }
+  .compass::after {
+    content: ""; position: absolute; left: 50%; top: 16px;
+    width: 0; height: 24px; transform: translateX(-50%);
+    border-left: 1px dashed rgba(15,20,24,.45);
+  }
+  .scale {
+    position: absolute; bottom: 60px; left: 44px; z-index: 4;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.30em;
+    color: rgba(20,24,26,.7);
+  }
+  .scale .bar {
+    margin-top: 4px; width: 110px; height: 6px;
+    background: linear-gradient(90deg,
+      var(--ink-black) 0 25%, transparent 25% 50%,
+      var(--ink-black) 50% 75%, transparent 75% 100%);
+    border: 1px solid rgba(15,20,24,.55);
+  }
+
+  /* zoom HUD */
+  .zoom-hud {
+    position: absolute; top: 36px; left: 44px; z-index: 4;
+    display: flex; flex-direction: column; gap: 8px;
+    background: rgba(248,251,255,.78);
+    border: 1px solid rgba(15,20,24,.32);
+    padding: 8px;
+  }
+  .zoom-btn {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-kai); font-size: 14px; font-weight: 900;
+    color: var(--ink-black);
+    background: rgba(248,251,255,.7);
+    border: 1px solid rgba(15,20,24,.32);
+    cursor: pointer; transition: all .14s ease;
+  }
+  .zoom-btn:hover { background: var(--ink-black); color: rgba(248,251,255,.96); }
+  .zoom-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .zoom-btn:disabled:hover { background: rgba(248,251,255,.7); color: var(--ink-black); }
+  .zoom-track {
+    position: relative;
+    width: 28px; height: 80px;
+    background: rgba(248,251,255,.5);
+    border: 1px solid rgba(15,20,24,.32);
+  }
+  .zoom-track .fill {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--ink-black);
+    height: var(--zoom-fill, 0%);
+    transition: height .12s ease;
+  }
+  .zoom-label {
+    text-align: center;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em;
+    color: var(--ink-black);
+  }
+
+  /* === 右侧 panel === */
+  .panel {
+    padding: 26px 28px; overflow-y: auto;
+    border-left: 1px solid rgba(15,20,24,.14);
+    scrollbar-width: thin; scrollbar-color: rgba(15,20,24,.18) transparent;
+  }
+  .p-head { padding-bottom: 12px; border-bottom: 1px solid rgba(15,20,24,.14); position: relative; }
+  .p-title {
+    font-family: var(--font-kai); font-size: 26px; font-weight: 900;
+    letter-spacing: 0.20em; color: var(--ink-black);
+  }
+  .p-coord {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.42em;
+    color: rgba(35,43,50,.6); margin-top: 6px;
+  }
+  .p-stamp {
+    position: absolute; top: 0; right: 0;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-kai); font-size: 18px; font-weight: 900;
+    color: rgba(248,251,255,.96);
+    background: var(--ink-black);
+    transform: rotate(-3deg);
+  }
+  .p-stamp.current { background: var(--zhusha, #B83A1C); }
+  .p-flavor {
+    margin-top: 16px;
+    font-family: var(--font-kai); font-size: 13px; line-height: 1.85;
+    letter-spacing: 0.08em; color: rgba(20,24,26,.86); text-wrap: pretty;
+  }
+  .p-section { margin-top: 18px; }
+  .p-section h4 {
+    font-family: var(--font-kai); font-size: 12px; font-weight: 900;
+    letter-spacing: 0.42em; color: rgba(35,43,50,.6);
+    margin-bottom: 10px;
+    border-left: 2px solid var(--ink-black); padding-left: 8px;
+  }
+  .p-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .p-tag {
+    padding: 4px 10px;
+    font-family: var(--font-kai); font-size: 11px; letter-spacing: 0.20em;
+    color: rgba(20,24,26,.84);
+    border: 1px solid rgba(15,20,24,.32);
+    background: rgba(248,251,255,.62);
+  }
+  .p-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  .stat-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 10px;
+    background: rgba(248,251,255,.62);
+    border: 1px solid rgba(15,20,24,.10);
+    font-family: var(--font-kai); font-size: 12px;
+  }
+  .stat-name { color: rgba(35,43,50,.6); letter-spacing: 0.16em; }
+  .stat-val  { color: var(--ink-black); font-weight: 900; letter-spacing: 0.10em; }
+
+  .p-actions { margin-top: 22px; display: flex; gap: 10px; }
+  .btn {
+    flex: 1; padding: 10px 14px;
+    font-family: var(--font-kai); font-size: 13px; font-weight: 700;
+    letter-spacing: 0.32em;
+    border: 1px solid rgba(15,20,24,.55);
+    background: rgba(248,251,255,.7); color: var(--ink-black);
+    cursor: pointer; transition: all .14s ease;
+  }
+  .btn:hover { background: rgba(232,240,247,.9); }
+  .btn.primary { background: var(--ink-black); color: rgba(248,251,255,.96); border-color: var(--ink-black); }
+  .btn.primary:hover { transform: translateY(-1px); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  /* hotspot detail card */
+  .hot-card {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: rgba(248,251,255,.85);
+    border: 1px solid rgba(184,58,28,.5);
+    border-left-width: 3px;
+    position: relative;
+  }
+  .hot-card-h {
+    font-family: var(--font-kai); font-size: 11px; letter-spacing: 0.42em;
+    color: var(--zhusha, #B83A1C); margin-bottom: 4px;
+  }
+  .hot-card-name {
+    font-family: var(--font-kai); font-size: 16px; font-weight: 900;
+    letter-spacing: 0.20em; color: var(--ink-black); margin-bottom: 6px;
+  }
+  .hot-card-desc {
+    font-family: var(--font-kai); font-size: 12px; line-height: 1.7;
+    letter-spacing: 0.06em; color: rgba(20,24,26,.86);
+  }
+
+  /* === footer === */
+  .footer-bar {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
+    height: 60px; padding: 0 var(--safe-x);
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(0deg, rgba(232,240,247,.8) 0%, rgba(248,251,255,0) 100%);
+    border-top: 1px solid rgba(15,20,24,.10);
+  }
+  .footer-meta {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.32em;
+    color: rgba(35,43,50,.55);
+  }
+  .footer-meta .label-cn {
+    font-family: var(--font-kai); font-size: 14px; font-weight: 900;
+    letter-spacing: 0.32em; color: var(--ink-black); margin-right: 10px;
+  }
+  .prompts { display: flex; align-items: center; gap: 18px; }
+  .prompt {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-kai); font-size: 12px; letter-spacing: 0.22em;
+    color: rgba(20,24,26,.86);
+  }
+  .km {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; padding: 0 8px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    color: var(--ink-black);
+    background: rgba(248,251,255,.95);
+    border: 1.2px solid rgba(15,20,24,.55);
+    border-radius: 11px;
+  }
+  .km.cross { color: rgba(248,251,255,.96); background: var(--ink-black); border-color: var(--ink-black); }
+
+  .toast {
+    position: absolute; left: 50%; top: 84px;
+    transform: translateX(-50%) translateY(-12px);
+    padding: 10px 18px;
+    background: var(--ink-black); color: rgba(248,251,255,.96);
+    font-family: var(--font-kai); font-size: 13px; letter-spacing: 0.28em;
+    z-index: 9; opacity: 0; pointer-events: none;
+    transition: opacity .22s ease, transform .22s ease;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<main class="stage">
+  <div class="grain"></div>
+
+  <nav class="nav-tabs" data-current="map" aria-label="界面切换">
+    <span class="tk-key l">L1</span>
+    <div class="tabs-row">
+      <a class="tab-link" data-screen="map">地图</a>
+      <a class="tab-link" data-screen="journal">日志</a>
+      <a class="tab-link" data-screen="inventory">行囊</a>
+      <a class="tab-link" data-screen="skills">武学</a>
+      <a class="tab-link" data-screen="codex">收藏</a>
+      <a class="tab-link" data-screen="settings">設定</a>
+    </div>
+    <span class="tk-key r">R1</span>
+    <div class="nav-right">
+      <span class="chap-num">壹</span>
+      <span class="meta-coin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="12" cy="12" r="9"></circle>
+          <rect x="9.5" y="9.5" width="5" height="5"></rect>
+        </svg>
+        596
+      </span>
+    </div>
+  </nav>
+
+  <div class="body">
+    <section class="scroll">
+      <div class="scroll-inner" id="scroll-inner">
+        <svg class="map-svg" id="map-svg" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <clipPath id="canvas-clip">
+              <rect x="0" y="0" width="100" height="60"/>
+            </clipPath>
+          </defs>
+
+          <g id="world" clip-path="url(#canvas-clip)" transform="translate(0,0) scale(1)">
+            <!-- 山地 -->
+            <path class="land" d="M2,18 Q16,12 30,18 Q44,12 58,18 Q72,14 88,16 Q96,20 96,28 Q86,36 70,38 Q56,42 42,40 Q26,42 12,38 Q4,32 2,26 Z"/>
+            <path class="land" d="M28,46 Q42,42 56,46 Q72,46 86,52 L86,56 Q70,58 56,56 Q42,58 28,56 Z"/>
+            <!-- 河 / 道 / 山纹 -->
+            <path class="river" d="M10,22 Q26,28 44,32 Q60,38 84,34"/>
+            <path class="river" d="M48,8 Q50,18 50,28"/>
+            <path class="mtn" d="M14,20 l3,-4 l3,4 M22,20 l3,-5 l3,5 M30,20 l4,-6 l4,6"/>
+            <path class="mtn" d="M62,18 l3,-4 l3,4 M70,18 l3,-5 l3,5 M78,18 l3,-4 l3,4"/>
+            <path class="mtn" d="M40,38 l3,-3 l3,3 M48,38 l3,-3 l3,3"/>
+            <path class="road" d="M14,22 Q28,30 44,34 Q56,40 72,38 Q82,36 90,28"/>
+
+            <!-- 雾 -->
+            <path class="fog" d="M62,8 Q78,4 92,8 L94,30 Q82,34 70,32 Q60,28 62,16 Z" style="opacity: var(--fog1-op,.7)"/>
+            <path class="fog" d="M70,46 Q82,44 94,48 L94,58 Q82,60 70,58 Z" style="opacity: var(--fog2-op,.7)"/>
+
+            <!-- 山村南口细节 (中心 48,42 ; 半径约 6 单位) -->
+            <g id="village-detail">
+              <!-- 田畴底色 -->
+              <rect x="42" y="38" width="12" height="8" fill="rgba(218,196,148,.20)"/>
+              <!-- 田埂 -->
+              <path class="v-fence" d="M43,40 L53,40 M43,42 L53,42 M43,44 L53,44 M45,38 L45,46 M48,38 L48,46 M51,38 L51,46"/>
+
+              <!-- 树（西侧） -->
+              <line class="v-trunk" x1="43.6" y1="42.5" x2="43.6" y2="41"/>
+              <ellipse class="v-tree" cx="43.6" cy="40.4" rx=".7" ry="1.1"/>
+              <line class="v-trunk" x1="44.4" y1="44.6" x2="44.4" y2="43.4"/>
+              <ellipse class="v-tree" cx="44.4" cy="42.7" rx=".55" ry=".9"/>
+
+              <!-- 旧屋 #1（西北，旧屋） -->
+              <g class="hot" data-id="old_house" transform="translate(46.4,40.6)">
+                <rect class="v-fill" x="-1.2" y="-.6" width="2.4" height="1.2"/>
+                <polygon class="v-roof" points="-1.5,-.6 1.5,-.6 0,-1.6"/>
+                <line class="v-line" x1="-.2" y1="0" x2=".2" y2="0"/>
+                <line class="v-line" x1="0" y1=".6" x2="0" y2="0"/>
+                <circle class="ring" cx="0" cy="-.6" r="2.4"/>
+                <text class="label" x="0" y="-2.4">旧 屋</text>
+              </g>
+
+              <!-- 旧屋 #2 + #3（更小） -->
+              <g transform="translate(48.8,41)">
+                <rect class="v-fill" x="-1" y="-.4" width="2" height="1"/>
+                <polygon class="v-roof" points="-1.2,-.4 1.2,-.4 0,-1.2"/>
+              </g>
+              <g transform="translate(50.6,42.4)">
+                <rect class="v-fill" x="-.8" y="-.4" width="1.6" height=".9"/>
+                <polygon class="v-roof" points="-1,-.4 1,-.4 0,-1.1"/>
+              </g>
+
+              <!-- 火堆（中央偏南） -->
+              <g class="hot" data-id="fire" transform="translate(48.4,43.2)">
+                <line class="v-trunk" x1="-.4" y1=".15" x2=".4" y2=".15"/>
+                <line class="v-trunk" x1="-.3" y1=".3" x2=".3" y2=".3"/>
+                <polygon class="v-fire" points="0,-.5 -.32,.1 .32,.1"/>
+                <polygon class="v-fire" points="0,-.25 -.18,.06 .18,.06" style="fill:#FFD27A"/>
+                <!-- 烟 -->
+                <path class="v-smoke" d="M0,-.6 Q.3,-1.4 0,-2.2 Q-.3,-3 .1,-3.8"/>
+                <circle class="ring" cx="0" cy="-.2" r="2"/>
+                <text class="label" x="0" y="-2.8">火 堆</text>
+              </g>
+
+              <!-- 井（东北） -->
+              <g class="hot active" data-id="well" transform="translate(50,40)">
+                <rect class="v-fill" x="-.55" y="-.55" width="1.1" height="1.1"/>
+                <rect class="v-water" x="-.4" y="-.4" width=".8" height=".8"/>
+                <line class="v-line" x1="-.55" y1="-.55" x2=".55" y2=".55"/>
+                <line class="v-line" x1="-.55" y1=".55" x2=".55" y2="-.55"/>
+                <!-- 灵儿（小人剪影） -->
+                <circle class="v-figure" cx="1.1" cy="-.2" r=".18"/>
+                <rect class="v-figure" x="1.0" y="0" width=".2" height=".5"/>
+                <circle class="ring" cx="0" cy="0" r="2.2"/>
+                <text class="label" x="0" y="-2.8">井 · 灵 儿</text>
+              </g>
+
+              <!-- 路径（道入村） -->
+              <path class="v-line" d="M42,44 Q45,43.6 48,43.6 Q50,43.4 53,42.4" style="stroke-dasharray:1 .8"/>
+
+              <!-- 门额 / 村牌 -->
+              <text class="v-tag" x="48" y="38.6" style="letter-spacing:0.42em;">山 村 南 口</text>
+            </g>
+
+            <!-- 标记层（与 zoom 反向缩放，保持视觉大小） -->
+            <g id="markers"></g>
+          </g>
+        </svg>
+
+        <div class="compass">里</div>
+        <div class="scale">
+          壹 里 ／ 千 步
+          <div class="bar"></div>
+        </div>
+
+        <!-- zoom HUD -->
+        <div class="zoom-hud">
+          <button class="zoom-btn" id="zoom-in"  title="放大">＋</button>
+          <div class="zoom-track"><div class="fill" id="zoom-fill"></div></div>
+          <button class="zoom-btn" id="zoom-out" title="缩小">−</button>
+          <button class="zoom-btn" id="zoom-reset" title="复位" style="font-size:11px;">原</button>
+          <div class="zoom-label" id="zoom-label">1.0×</div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel"></aside>
+  </div>
+
+  <footer class="footer-bar">
+    <div class="footer-meta"><span class="label-cn">山 河 图</span>滚轮缩放 · 拖拽平移 · 山村南口可深入</div>
+    <div class="prompts">
+      <span class="prompt"><span class="km">↑↓</span>选址</span>
+      <span class="prompt"><span class="km">+ −</span>缩放</span>
+      <span class="prompt"><span class="km">0</span>复位</span>
+      <span class="prompt"><span class="km cross">✕</span>传送</span>
+    </div>
+  </footer>
+
+  <div class="toast" aria-live="polite"></div>
+</main>
+
+<script>
+const MAP = {
+  activeId: "han_village",
+  currentId: "han_village",
+  activeHotId: "well",
+  markers: [
+    { id:"juyan_pass",  name:"居延关",     x:14, y:24, visited:true,
+      flavor:"汉之北门。雪夜出关，是众多旅人不归的起点。",
+      tags:["第一幕","雪 · 风 · 漠"],
+      stats:[["敌人","山贼"],["特产","茯苓"],["传送","已开"]] },
+    { id:"han_road",    name:"漠北古道",   x:32, y:32, visited:true,
+      flavor:"三日大雪，白茫茫的古道上只剩车辙和孤丐。",
+      tags:["第二幕","雪行 · 古道"],
+      stats:[["敌人","饿狼"],["特产","干粮"],["传送","已开"]] },
+    { id:"han_village", name:"山村南口",   x:48, y:42, visited:true, current:true,
+      flavor:"灵儿戏水的旧井就在这里。火堆旁的先生从不答话。",
+      tags:["第三幕","故乡 · 回忆"],
+      stats:[["敌人","无"],["特产","麦饼"],["传送","当前"],["居所","南口旧屋"]] },
+    { id:"fortress",    name:"敌寨 · 影崖", x:72, y:30, visited:false, locked:true,
+      flavor:"悬崖上的兵寨，飞鸟不至。潜行系统在此首演。",
+      tags:["待解锁","潜行 · 哨"],
+      stats:[["敌人","兵 · 哨"],["特产","汉刀残片"],["传送","未开"]] },
+    { id:"old_capital", name:"旧都 · 长安", x:88, y:22, visited:false, locked:true,
+      flavor:"故国都城。残碑断瓦，问之者寡。",
+      tags:["第四幕 · 待"],
+      stats:[["敌人","?"],["特产","?"],["传送","未开"]] }
+  ],
+  hotspots: {
+    well:      { name:"井 · 灵 儿", desc:"井边的稚女在戏水。她说，井里的鱼会游到天上去。" },
+    fire:      { name:"火 堆 · 先 生", desc:"火堆旁独居一老。话少而知人，茶常温。" },
+    old_house: { name:"南 口 旧 屋", desc:"母亲住过的屋子，门后还挂着一束干竹。" }
+  }
+};
+
+/* ============ 缩放 / 平移 ============ */
+const VB_W = 100, VB_H = 60;
+const ZOOM_MIN = 1, ZOOM_MAX = 8;
+const VILLAGE_CX = 48, VILLAGE_CY = 42;
+const view = { zoom: 1, tx: 0, ty: 0 };  // tx, ty 都在 viewBox 单位
+
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+function applyTransform() {
+  const z = view.zoom;
+  // 限制平移：保证 viewBox 内仍然贴满
+  const maxTx = (VB_W * (z - 1));
+  const maxTy = (VB_H * (z - 1));
+  view.tx = clamp(view.tx, -maxTx, 0);
+  view.ty = clamp(view.ty, -maxTy, 0);
+
+  document.getElementById("world").setAttribute(
+    "transform", `translate(${view.tx} ${view.ty}) scale(${z})`
+  );
+
+  // village 透明度（z 4 → 0, z 6 → 1，连续过渡）
+  const vop = clamp((z - 4) / 2, 0, 1);
+  const fadeFog = clamp((z - 1.5) / 1.5, 0, 1); // zoom in fog 慢慢淡掉
+  const root = document.documentElement.style;
+  root.setProperty("--village-op", vop.toFixed(2));
+  root.setProperty("--village-pe", vop > 0.4 ? "auto" : "none");
+  root.setProperty("--fog1-op", (0.7 * (1 - fadeFog * 0.6)).toFixed(2));
+  root.setProperty("--fog2-op", (0.7 * (1 - fadeFog * 0.6)).toFixed(2));
+
+  // 标记缩放反向，保持像素大小（4× 后渐隐）
+  const inv = 1 / z;
+  const pinFade = clamp(1 - (z - 4) / 1.5, 0, 1); // 4 → 5.5 区间淡出
+  document.querySelectorAll(".pin-g").forEach(g => {
+    const cx = parseFloat(g.dataset.cx), cy = parseFloat(g.dataset.cy);
+    g.setAttribute("transform", `translate(${cx} ${cy}) scale(${inv})`);
+    // 山村的 pin 缩近后淡出，避免和细节重叠
+    if (g.dataset.id === "han_village") g.style.opacity = pinFade;
+  });
+
+  // HUD
+  const pct = ((z - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * 100;
+  document.getElementById("zoom-fill").style.height = pct + "%";
+  document.getElementById("zoom-label").textContent = z.toFixed(1) + "×";
+  document.getElementById("zoom-in").disabled  = z >= ZOOM_MAX - .01;
+  document.getElementById("zoom-out").disabled = z <= ZOOM_MIN + .01;
+}
+
+/** 在 viewBox 坐标 (cx, cy) 处缩放到 newZoom，保持该点屏幕位置不变 */
+function zoomAt(cx, cy, newZoom) {
+  const z0 = view.zoom;
+  const z1 = clamp(newZoom, ZOOM_MIN, ZOOM_MAX);
+  // 当前 cx 在屏幕上的 viewBox 位置 = cx * z0 + tx
+  // 期望缩放后保持位置: cx * z1 + tx1 = cx * z0 + tx0  →  tx1 = tx0 + cx*(z0 - z1)
+  view.tx = view.tx + cx * (z0 - z1);
+  view.ty = view.ty + cy * (z0 - z1);
+  view.zoom = z1;
+  applyTransform();
+}
+
+function clientToViewBox(clientX, clientY) {
+  const svg = document.getElementById("map-svg");
+  const rect = svg.getBoundingClientRect();
+  // viewBox uses preserveAspectRatio=slice (cover)
+  const scaleX = rect.width / VB_W, scaleY = rect.height / VB_H;
+  const scale = Math.max(scaleX, scaleY);
+  const drawW = VB_W * scale, drawH = VB_H * scale;
+  const offX = (rect.width - drawW) / 2;
+  const offY = (rect.height - drawH) / 2;
+  const sx = (clientX - rect.left - offX) / scale;
+  const sy = (clientY - rect.top  - offY) / scale;
+  // sx 是当前显示状态下的 viewBox 坐标（= 世界坐标 * zoom + tx），还原回世界坐标
+  return { x: (sx - view.tx) / view.zoom, y: (sy - view.ty) / view.zoom };
+}
+
+/* ============ 标记 / 面板 ============ */
+function showToast(msg) {
+  const t = document.querySelector(".toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+function renderMarkers() {
+  const layer = document.getElementById("markers");
+  layer.innerHTML = "";
+  MAP.markers.forEach(m => {
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    let cls = "pin-g";
+    if (m.visited) cls += " visited";
+    if (m.locked)  cls += " locked";
+    if (m.id === MAP.currentId) cls += " current";
+    if (m.id === MAP.activeId)  cls += " active";
+    g.setAttribute("class", cls);
+    g.dataset.cx = m.x; g.dataset.cy = m.y;
+    g.dataset.id = m.id;
+
+    // pulse for current
+    if (m.id === MAP.currentId) {
+      g.innerHTML += `<rect class="pin-pulse" x="-2" y="-2" width="4" height="4" transform="rotate(45)"/>`;
+    }
+    // 菱形 pin
+    g.innerHTML += `<rect class="pin-rect" x="-1.4" y="-1.4" width="2.8" height="2.8" transform="rotate(45)"/>`;
+    // 标签
+    g.innerHTML += `<text class="pin-label" y="3.6">${m.name}</text>`;
+
+    g.style.cursor = "pointer";
+    g.addEventListener("click", () => setActive(m.id));
+    layer.appendChild(g);
+  });
+}
+
+function renderPanel() {
+  const m = MAP.markers.find(x => x.id === MAP.activeId);
+  if (!m) return;
+  const wrap = document.querySelector(".panel");
+  const isCur = m.id === MAP.currentId;
+  const tagsHtml = (m.tags || []).map(t => `<div class="p-tag">${t}</div>`).join("");
+  const statsHtml = (m.stats || []).map(s => `<div class="stat-row"><span class="stat-name">${s[0]}</span><span class="stat-val">${s[1]}</span></div>`).join("");
+  const stamp = isCur ? "立" : (m.visited ? "访" : "封");
+
+  let hotCard = "";
+  if (m.id === "han_village" && view.zoom > 4) {
+    const h = MAP.hotspots[MAP.activeHotId];
+    if (h) hotCard = `
+      <div class="hot-card">
+        <div class="hot-card-h">兴 趣 点 · POI</div>
+        <div class="hot-card-name">${h.name}</div>
+        <div class="hot-card-desc">${h.desc}</div>
+      </div>`;
+  }
+
+  wrap.innerHTML = `
+    <div class="p-head">
+      <div class="p-title">${m.name}</div>
+      <div class="p-coord">坐标 ${String(m.x).padStart(2,"0")} · ${String(m.y).padStart(2,"0")} ${isCur ? "· 当前" : (m.visited ? "· 已访" : "· 未访")}</div>
+      <div class="p-stamp ${isCur ? 'current' : ''}">${stamp}</div>
+    </div>
+    <div class="p-flavor">${m.flavor}</div>
+    ${hotCard}
+    <div class="p-section"><h4>记 号</h4><div class="p-tags">${tagsHtml}</div></div>
+    <div class="p-section"><h4>诸 数</h4><div class="p-stats">${statsHtml}</div></div>
+    <div class="p-actions">
+      <button class="btn primary" ${m.visited && !isCur ? "" : "disabled"} onclick="travel()">${isCur ? "驻 留" : "传 送"}</button>
+      <button class="btn" onclick="zoomToVillage()">${m.id === 'han_village' && view.zoom < 5 ? '深 入' : '远 观'}</button>
+    </div>`;
+}
+
+function setActive(id) { MAP.activeId = id; renderMarkers(); renderPanel(); }
+function setHot(id) {
+  MAP.activeHotId = id;
+  document.querySelectorAll(".hot").forEach(h => h.classList.toggle("active", h.dataset.id === id));
+  renderPanel();
+}
+function travel() {
+  const m = MAP.markers.find(x => x.id === MAP.activeId);
+  if (!m || !m.visited) { showToast("此地未访 · 不能传送"); return; }
+  if (m.id === MAP.currentId) { showToast("正立此地 · 无须传送"); return; }
+  MAP.currentId = m.id;
+  renderMarkers(); renderPanel();
+  showToast(`传送：${m.name}`);
+}
+function cycle(d) {
+  const i = MAP.markers.findIndex(m => m.id === MAP.activeId);
+  setActive(MAP.markers[(i + d + MAP.markers.length) % MAP.markers.length].id);
+}
+
+function zoomToVillage() {
+  // 在 50% 时间内动效到 6×
+  if (view.zoom < 5) animateZoomTo(6, VILLAGE_CX, VILLAGE_CY);
+  else animateZoomTo(1, VB_W/2, VB_H/2);
+}
+
+function animateZoomTo(targetZoom, cx, cy, duration = 500) {
+  const startZoom = view.zoom;
+  const startTx = view.tx, startTy = view.ty;
+  const t0 = performance.now();
+
+  // 计算目标 tx/ty
+  const targetTx = view.tx + cx * (startZoom - targetZoom)
+    + (VB_W/2 - cx) * (startZoom - targetZoom) / startZoom * 0; // 只用 zoomAt 的公式简化即可
+  // 简化做法：直接调用 zoomAt 算出目标 tx/ty
+  const z0 = startZoom, z1 = targetZoom;
+  const finalTx = startTx + cx * (z0 - z1);
+  const finalTy = startTy + cy * (z0 - z1);
+
+  function tick(now) {
+    const t = clamp((now - t0) / duration, 0, 1);
+    const e = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    view.zoom = startZoom + (targetZoom - startZoom) * e;
+    view.tx = startTx + (finalTx - startTx) * e;
+    view.ty = startTy + (finalTy - startTy) * e;
+    applyTransform();
+    if (t < 1) requestAnimationFrame(tick);
+    else renderPanel();
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ============ 事件 ============ */
+const inner = document.getElementById("scroll-inner");
+
+inner.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const factor = Math.exp(-e.deltaY * 0.0015);
+  const newZoom = clamp(view.zoom * factor, ZOOM_MIN, ZOOM_MAX);
+  const p = clientToViewBox(e.clientX, e.clientY);
+  zoomAt(p.x, p.y, newZoom);
+  if ((view.zoom > 4 && Math.floor(view.zoom * 10) % 5 === 0)) renderPanel();
+}, { passive: false });
+
+let drag = null;
+inner.addEventListener("pointerdown", (e) => {
+  if (e.target.closest(".hot") || e.target.closest(".pin-g") || e.target.closest(".zoom-hud")) return;
+  inner.classList.add("dragging");
+  inner.setPointerCapture(e.pointerId);
+  drag = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty };
+});
+inner.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const svg = document.getElementById("map-svg");
+  const rect = svg.getBoundingClientRect();
+  const scale = Math.max(rect.width / VB_W, rect.height / VB_H);
+  view.tx = drag.tx + (e.clientX - drag.x) / scale;
+  view.ty = drag.ty + (e.clientY - drag.y) / scale;
+  applyTransform();
+});
+function endDrag() { drag = null; inner.classList.remove("dragging"); }
+inner.addEventListener("pointerup", endDrag);
+inner.addEventListener("pointercancel", endDrag);
+
+// hotspots
+document.querySelectorAll(".hot").forEach(h => {
+  h.addEventListener("click", (e) => { e.stopPropagation(); setHot(h.dataset.id); });
+});
+
+// zoom HUD
+document.getElementById("zoom-in").addEventListener("click",  () => animateZoomTo(clamp(view.zoom * 1.6, ZOOM_MIN, ZOOM_MAX), VB_W/2, VB_H/2, 280));
+document.getElementById("zoom-out").addEventListener("click", () => animateZoomTo(clamp(view.zoom / 1.6, ZOOM_MIN, ZOOM_MAX), VB_W/2, VB_H/2, 280));
+document.getElementById("zoom-reset").addEventListener("click", () => animateZoomTo(1, VB_W/2, VB_H/2, 320));
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "q" || e.key === "Q" || e.key === "e" || e.key === "E") return;
+  if (e.key === "ArrowUp"   || e.key === "w" || e.key === "W") { e.preventDefault(); cycle(-1); }
+  else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); cycle(1); }
+  else if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); cycle(-1); }
+  else if (e.key === "ArrowRight"|| e.key === "d" || e.key === "D") { e.preventDefault(); cycle(1); }
+  else if (e.key === "+" || e.key === "=") { e.preventDefault(); animateZoomTo(clamp(view.zoom * 1.6, ZOOM_MIN, ZOOM_MAX), VB_W/2, VB_H/2, 280); }
+  else if (e.key === "-" || e.key === "_") { e.preventDefault(); animateZoomTo(clamp(view.zoom / 1.6, ZOOM_MIN, ZOOM_MAX), VB_W/2, VB_H/2, 280); }
+  else if (e.key === "0") { e.preventDefault(); animateZoomTo(1, VB_W/2, VB_H/2, 320); }
+  else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); travel(); }
+});
+
+renderMarkers();
+renderPanel();
+applyTransform();
+</script>
+<script src="nav-tabs.js"></script>
+</body>
+</html>

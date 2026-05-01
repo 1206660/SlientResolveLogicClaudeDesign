@@ -1,0 +1,100 @@
+/* ============================================================================
+ * 一介 · 共享全局导航栏（水墨冷白主题）
+ * 用法：
+ *   <link rel="stylesheet" href="nav-tabs.css">
+ *   <nav class="nav-tabs">
+ *     <span class="tk-key l">L1</span>
+ *     <div class="tabs-row">
+ *       <a class="tab-link" data-screen="map" href="map.html">地图</a>
+ *       <a class="tab-link" data-screen="journal" href="journal.html">日志</a>
+ *       <a class="tab-link" data-screen="inventory" href="inventory.html">行囊</a>
+ *       <a class="tab-link" data-screen="skills" href="skills.html">武学</a>
+ *       <a class="tab-link" data-screen="codex" href="codex.html">收藏</a>
+ *       <a class="tab-link active" data-screen="settings" href="settings.html">設定</a>
+ *     </div>
+ *     <span class="tk-key r">R1</span>
+ *     <div class="nav-right">…</div>
+ *   </nav>
+ * ============================================================================ */
+
+.nav-tabs {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 64px;
+  z-index: 5;
+  display: flex; align-items: center;
+  padding: 0 var(--safe-x, 56px);
+  background:
+    linear-gradient(180deg, rgba(248,251,255,.86) 0%, rgba(232,240,247,.78) 60%, rgba(218,228,238,.62) 100%);
+  border-bottom: 1px solid rgba(15,20,24,.14);
+  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 4px 14px rgba(20,28,36,.06);
+  backdrop-filter: blur(2px);
+  font-family: var(--font-kai);
+}
+
+.nav-tabs .tk-key {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; height: 26px; padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+  color: var(--ink-black);
+  background: rgba(248,251,255,.95);
+  border: 1.2px solid rgba(15,20,24,.55);
+  border-radius: 13px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 1px 2px rgba(20,28,36,.18);
+  cursor: pointer; user-select: none;
+  transition: transform .14s ease, background .14s ease;
+}
+.nav-tabs .tk-key:hover { background: rgba(248,251,255,1); transform: translateY(-1px); }
+.nav-tabs .tk-key.l { margin-right: 22px; }
+.nav-tabs .tk-key.r { margin: 0 22px 0 22px; }
+
+.nav-tabs .tabs-row {
+  display: flex; align-items: center; gap: 28px;
+}
+.nav-tabs .tab-link {
+  position: relative;
+  font-family: var(--font-kai);
+  font-size: 18px; font-weight: 600;
+  letter-spacing: 0.36em; padding-right: 0.36em;
+  color: rgba(35,43,50,.55);
+  cursor: pointer; text-decoration: none;
+  transition: color .16s ease, transform .16s ease;
+}
+.nav-tabs .tab-link:hover { color: rgba(20,24,26,.85); }
+.nav-tabs .tab-link.active {
+  color: var(--ink-black);
+  font-weight: 900;
+}
+.nav-tabs .tab-link.active::before {
+  content: ""; position: absolute;
+  left: -12px; top: 50%; width: 4px; height: 4px;
+  background: var(--ink-black);
+  transform: translateY(-50%) rotate(45deg);
+}
+.nav-tabs .tab-link.active::after {
+  content: ""; position: absolute;
+  left: -8px; right: -2px; bottom: -10px; height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--ink-black) 18%, var(--ink-black) 82%, transparent 100%);
+}
+
+.nav-tabs .nav-right {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 18px;
+}
+.nav-tabs .chap-num {
+  font-family: var(--font-kai);
+  font-size: 22px; font-weight: 900;
+  letter-spacing: 0.10em;
+  color: var(--ink-black);
+  padding: 0 12px;
+  border-left: 1px solid rgba(15,20,24,.18);
+  border-right: 1px solid rgba(15,20,24,.18);
+  line-height: 1;
+}
+.nav-tabs .meta-coin {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-kai);
+  font-size: 14px; font-weight: 700; letter-spacing: 0.06em;
+  color: rgba(20,24,26,.86);
+}
+.nav-tabs .meta-coin svg { width: 18px; height: 18px; }

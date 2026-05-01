@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="ink">
+<head>
+<meta charset="utf-8">
+<title>一介 · 寒土孤山 · PS5 Title</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; user-select: none; cursor: default; }
+  body {
+    width: 1280px; height: 720px; position: relative;
+    color: var(--ink-black); font-family: var(--font-kai);
+    background: #050607;
+  }
+
+  /* ========================================================================
+   * STAGE — the actual title scene (冷白宣纸)
+   * ====================================================================== */
+  .stage {
+    position: absolute; inset: 0; z-index: 4;
+    background:
+      radial-gradient(ellipse 28vw 20vh at 44% 24%, rgba(255,255,255,.92), transparent 72%),
+      radial-gradient(ellipse 38vw 30vh at 49% 54%, rgba(222,231,241,.54), transparent 78%),
+      radial-gradient(ellipse 24vw 18vh at  9% 94%, rgba(115,130,142,.40), transparent 72%),
+      radial-gradient(ellipse 28vw 18vh at 86% 90%, rgba(176,189,201,.34), transparent 76%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='17'/><feColorMatrix values='0 0 0 0 0.63 0 0 0 0 0.68 0 0 0 0 0.74 0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F2F6FB 0%, #EAF0F7 42%, #DDE6EF 100%);
+    opacity: 0;
+    transition: opacity 1.2s cubic-bezier(.22,.9,.26,1) 0.2s;
+  }
+  body.stage-on .stage { opacity: 1; }
+
+  /* paper sparkle */
+  .stage::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background:
+      radial-gradient(circle 1.2px at 8% 20%, rgba(255,255,255,.86), transparent 72%),
+      radial-gradient(circle 1px   at 88% 8%, rgba(255,255,255,.72), transparent 72%),
+      radial-gradient(circle 1.4px at 91% 29%, rgba(255,255,255,.86), transparent 72%),
+      radial-gradient(circle 1px   at 5% 83%, rgba(255,255,255,.72), transparent 72%),
+      radial-gradient(circle 1.2px at 74% 92%, rgba(255,255,255,.82), transparent 72%);
+    opacity: .78;
+  }
+  /* mountain silhouette + foreground shadow band (replaces .stage::after) */
+  .horizon {
+    position: absolute; inset: auto 0 0 0; height: 31vh;
+    pointer-events: none; z-index: 2;
+    background:
+      linear-gradient(0deg, rgba(40,45,48,.33), transparent 64%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 420' preserveAspectRatio='none'><path d='M0 330 C160 270 260 355 410 300 C520 260 640 350 790 300 C940 245 1030 345 1200 292 C1370 240 1480 335 1600 278 L1600 420 L0 420 Z' fill='%233A4146' opacity='.36'/><path d='M370 310 C445 265 512 285 610 250 C548 316 470 333 370 310 Z' fill='%231D2225' opacity='.32'/><path d='M0 405 C250 360 460 393 700 350 C980 302 1210 388 1600 330 L1600 420 L0 420 Z' fill='%23080A0B' opacity='.22'/><path d='M92 382 L130 338 L170 382 Z M111 365 L111 420 L124 420 L124 365 Z' fill='%23080A0B' opacity='.28'/></svg>");
+  }
+
+  /* slowly drifting mist band */
+  .mist-band {
+    position: absolute; left: -10%; right: -10%;
+    bottom: 28vh; height: 90px;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.42) 30%, rgba(255,255,255,.65) 50%, rgba(255,255,255,.42) 70%, transparent 100%);
+    filter: blur(16px);
+    opacity: 0;
+    transition: opacity 2.4s ease 1.6s;
+    animation: mist-sweep 50s ease-in-out infinite alternate;
+  }
+  body.stage-on .mist-band { opacity: .85; }
+  @keyframes mist-sweep {
+    from { transform: translateX(-6%); }
+    to   { transform: translateX(8%); }
+  }
+
+  /* film grain — subtle, animated */
+  .grain {
+    position: absolute; inset: 0; pointer-events: none; z-index: 6;
+    opacity: 0; transition: opacity 1.6s ease 0.8s;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' seed='23'/><feColorMatrix values='0 0 0 0 0.72 0 0 0 0 0.78 0 0 0 0 0.84 0 0 0 0.22 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  body.stage-on .grain { opacity: 0.13; }
+
+  /* ============ DISTANT V-FORMATION FLOCK ================================= */
+  .flock {
+    position: absolute; top: 96px; left: 0; width: 100%; height: 80px;
+    pointer-events: none; z-index: 5; opacity: 0;
+    transition: opacity 2.4s ease 1.4s;
+  }
+  body.stage-on .flock { opacity: 0.78; }
+  .flock svg { width: 100%; height: 100%; overflow: visible; }
+  .flock .v-group { animation: flock-drift 70s linear infinite; transform-origin: center; }
+  .flock .v-wing { animation: wing-flap 0.95s ease-in-out infinite; transform-origin: center; }
+  .flock .v-wing.d1 { animation-delay: -0.18s; }
+  .flock .v-wing.d2 { animation-delay: -0.36s; }
+  .flock .v-wing.d3 { animation-delay: -0.10s; }
+  @keyframes flock-drift {
+    0%   { transform: translateX(-14%) translateY(0); }
+    50%  { transform: translateX(50%)  translateY(-8px); }
+    100% { transform: translateX(120%) translateY(0); }
+  }
+  @keyframes wing-flap {
+    0%, 100% { transform: scaleY(1); }
+    50%      { transform: scaleY(0.5); }
+  }
+
+  /* paper-grain motes drifting up */
+  .motes { position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 2s ease 1.4s; overflow: hidden; }
+  body.stage-on .motes { opacity: 1; }
+  .mote {
+    position: absolute; width: 2px; height: 2px;
+    background: rgba(35,43,50,.32); border-radius: 50%;
+    filter: blur(0.4px);
+    animation: mote-drift linear infinite;
+  }
+  @keyframes mote-drift {
+    from { transform: translate(0, 0); opacity: 0; }
+    20%  { opacity: 0.55; }
+    80%  { opacity: 0.55; }
+    to   { transform: translate(120px, -240px); opacity: 0; }
+  }
+
+  /* ========================================================================
+   * BOOT OVERLAY — three-phase opening sequence
+   *   Phase A (0.0–1.6s):  studio plate, ink crest mark
+   *   Phase B (1.6–3.2s):  ink-bloom radial reveal, paper turns over
+   *   Phase C (3.2–6.0s):  ink-blade drop, 一介 carved by clip-path,
+   *                         seal stamp, subtitle, press prompt arrives
+   * ====================================================================== */
+  .boot-shade {
+    position: absolute; inset: 0; z-index: 60;
+    background: #050607; pointer-events: none;
+    opacity: 1;
+    transition: opacity 900ms cubic-bezier(.22,.9,.26,1);
+  }
+  body.boot-done .boot-shade { opacity: 0; }
+
+  /* Phase A — studio crest */
+  .crest {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    text-align: center; z-index: 62;
+    opacity: 0; pointer-events: none;
+    animation: crest-in 0.7s ease 0.30s forwards, crest-out 0.6s ease 1.50s forwards;
+  }
+  .crest-mark {
+    width: 56px; height: 56px; margin: 0 auto 18px;
+    border: 1px solid rgba(248,251,255,0.86);
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(248,251,255,0.92);
+    font-family: var(--font-kai); font-size: 28px; font-weight: 900;
+    position: relative;
+  }
+  .crest-mark::before { content: ""; position: absolute; inset: 4px; border: 1px solid rgba(248,251,255,0.30); }
+  .crest-name {
+    font-family: var(--font-kai); font-size: 20px; font-weight: 900;
+    letter-spacing: 0.62em; text-indent: 0.62em;
+    color: rgba(248,251,255,0.92);
+  }
+  .crest-tag {
+    margin-top: 10px;
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.42em;
+    color: rgba(248,251,255,0.42); text-transform: uppercase; text-indent: 0.42em;
+  }
+  @keyframes crest-in {
+    from { opacity: 0; transform: translate(-50%,-50%) scale(0.94); }
+    to   { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  }
+  @keyframes crest-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+
+  /* Phase B — ink bloom radial */
+  .ink-bloom {
+    position: absolute; top: 50%; left: 50%;
+    width: 8px; height: 8px;
+    background: #050607; border-radius: 50%;
+    transform: translate(-50%,-50%) scale(1);
+    opacity: 0; z-index: 61;
+    animation: bloom 1.6s cubic-bezier(.22,.9,.26,1) 1.6s forwards;
+  }
+  @keyframes bloom {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(1); filter: blur(0); }
+    14%  { opacity: 1; transform: translate(-50%,-50%) scale(10);  filter: blur(0.5px); }
+    52%  { opacity: 1; transform: translate(-50%,-50%) scale(180); filter: blur(2.5px); background: rgba(20,24,28,0.78); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(420); filter: blur(8px);   background: rgba(20,24,28,0); }
+  }
+
+  /* ========================================================================
+   * TITLE POSTER — anchored center-left, calligraphic ink blade + clip-revealed 一介
+   * ====================================================================== */
+  .title-poster {
+    position: absolute;
+    left: 16%; top: 18%;
+    width: 460px; height: 470px;
+    z-index: 14;
+    pointer-events: none;
+  }
+  /* the iconic vertical ink blade behind 一介 */
+  .ink-blade {
+    position: absolute;
+    left: 56%; top: 4%;
+    width: 26px; height: 90%;
+    background: linear-gradient(180deg, rgba(8,10,12,.96) 0%, #000 50%, rgba(18,20,22,.96) 100%);
+    border-radius: 70% 50% 60% 42%;
+    filter: drop-shadow(12px 22px 14px rgba(42,52,61,.32));
+    transform-origin: 50% 0%;
+    transform: scaleY(0) rotate(0.5deg);
+    transition: transform 1100ms cubic-bezier(.16,.9,.18,1) 3.2s;
+  }
+  body.boot-done .ink-blade { transform: scaleY(1) rotate(0.5deg); }
+
+  /* sweep at the bottom of the blade — like brush leaving paper */
+  .ink-sweep {
+    position: absolute;
+    left: 44%; bottom: 4%;
+    width: 168px; height: 22px;
+    background:
+      radial-gradient(ellipse at 18% 60%, rgba(5,6,7,.34), transparent 62%),
+      linear-gradient(7deg, transparent 0 22%, rgba(5,6,7,.36) 34% 48%, transparent 66%);
+    filter: blur(2.6px);
+    transform: translateX(-22px) rotate(-3deg);
+    opacity: 0;
+    transition: opacity 800ms ease 4.0s, transform 900ms cubic-bezier(.22,.9,.26,1) 4.0s;
+  }
+  body.boot-done .ink-sweep { opacity: 0.42; transform: translateX(0) rotate(-3deg); }
+
+  /* dry-brush 飞白 white streaks layered over the blade */
+  .blade-streaks {
+    position: absolute; left: 50%; top: 6%;
+    width: 50px; height: 88%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 700ms ease 4.0s;
+  }
+  body.boot-done .blade-streaks { opacity: 0.46; }
+  .blade-streaks svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* the characters 一 介 — clip-path reveals top-down like ink falling */
+  .title-main {
+    position: relative; z-index: 2;
+    writing-mode: vertical-rl; text-orientation: upright;
+    font-size: 156px; line-height: 1.04; letter-spacing: 0.10em;
+    font-weight: 900; color: rgba(4,5,6,.94);
+    transform: translateX(-44px) rotate(-2deg);
+    text-shadow: 0 2px 0 rgba(255,255,255,.20), 0 22px 36px rgba(80,96,110,.28);
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+    transition: opacity 560ms ease 3.7s, clip-path 1200ms cubic-bezier(.16,.9,.18,1) 3.7s;
+  }
+  body.boot-done .title-main { opacity: 1; clip-path: inset(0 0 0 0); }
+
+  /* subtitle 寒土孤山 — vertical, fades up after main */
+  .title-sub {
+    position: absolute;
+    left: 14%; bottom: 6%;
+    writing-mode: vertical-rl; text-orientation: upright;
+    font-size: 30px; letter-spacing: 0.30em; line-height: 1.45;
+    font-weight: 700; color: rgba(12,15,17,.78);
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 700ms ease 4.4s, transform 800ms cubic-bezier(.22,.9,.26,1) 4.4s;
+  }
+  body.boot-done .title-sub { opacity: 1; transform: translateY(0); }
+
+  /* tagline */
+  .title-tag {
+    position: absolute;
+    left: 1%; bottom: 4%;
+    writing-mode: vertical-rl; text-orientation: upright;
+    font-size: 14px; letter-spacing: 0.28em; line-height: 1.7;
+    color: rgba(18,22,24,.62);
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 700ms ease 4.6s, transform 800ms cubic-bezier(.22,.9,.26,1) 4.6s;
+  }
+  body.boot-done .title-tag { opacity: 1; transform: translateY(0); }
+
+  /* corner seal — vertical 朱印 plate (cool grey on Ink theme) */
+  .corner-seal {
+    position: absolute;
+    left: 58%; top: 9%;
+    width: 44px; height: 72px; z-index: 11;
+    display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl;
+    color: rgba(20,24,26,.74);
+    background: rgba(235,240,246,.42);
+    border: 2px solid rgba(42,48,52,.55);
+    box-shadow: 0 8px 18px rgba(66,78,88,.15), inset 0 0 0 2px rgba(255,255,255,.28);
+    font-size: 17px; letter-spacing: 0.08em;
+    opacity: 0; transform: scale(.9) rotate(-1deg);
+    transition: opacity 560ms ease 4.8s, transform 700ms cubic-bezier(.34,1.56,.64,1) 4.8s;
+  }
+  .corner-seal::before { content: ""; position: absolute; inset: 4px; border: 1px solid rgba(42,48,52,.34); }
+  body.boot-done .corner-seal { opacity: 1; transform: scale(1) rotate(-1deg); }
+
+  /* tiny vermilion seal stamp — stamps after everything else, ONLY accent color */
+  .seal-stamp {
+    position: absolute;
+    left: 60%; top: 56%;
+    width: 38px; height: 38px;
+    background: var(--zhusha); color: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-kai); font-size: 18px; font-weight: 900;
+    transform: rotate(-4deg) scale(0); opacity: 0;
+    box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.22), 0 6px 14px rgba(0,0,0,.32);
+    z-index: 12;
+    animation: seal-stamp 0.42s cubic-bezier(.34,1.56,.64,1) 5.4s forwards;
+  }
+  .seal-stamp::before { content: ""; position: absolute; inset: 3px; border: 1px solid rgba(255,255,255,0.28); }
+  @keyframes seal-stamp {
+    0%   { opacity: 0; transform: rotate(-4deg) scale(0); }
+    50%  { opacity: 1; transform: rotate(-4deg) scale(1.2); }
+    100% { opacity: 1; transform: rotate(-4deg) scale(1); }
+  }
+
+  /* ========================================================================
+   * AAA PRESS PROMPT — minimal ink-rule + glyph badge with breathing aura
+   * ====================================================================== */
+  .press-prompt {
+    position: absolute; bottom: 96px; left: 50%; transform: translateX(-50%);
+    z-index: 8;
+    display: inline-flex; align-items: center; gap: 22px;
+    padding: 6px 0;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 800ms ease 5.4s, transform 800ms ease 5.4s;
+  }
+  body.boot-done .press-prompt {
+    opacity: 1;
+    animation: prompt-breath 2.6s ease-in-out 5.6s infinite;
+  }
+  .press-prompt .rule {
+    width: 64px; height: 1px;
+    background: rgba(5,7,8,.62);
+    transition: width 0.4s var(--ease-out, ease);
+  }
+  .press-prompt:hover .rule { width: 92px; }
+  .press-prompt .key {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+    color: var(--ink-black);
+    border: 1px solid rgba(5,7,8,.78);
+    background: transparent;
+  }
+  .press-prompt .key::before {
+    content: ""; position: absolute; inset: -7px;
+    border: 1px solid rgba(5,7,8,.18);
+  }
+  .press-prompt .lbl {
+    font-family: var(--font-kai); font-size: 17px; font-weight: 900;
+    letter-spacing: 0.46em; color: var(--ink-black);
+    text-indent: 0.46em;
+  }
+  @keyframes prompt-breath {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(5,7,8,0)); }
+    50%      { filter: drop-shadow(0 0 14px rgba(5,7,8,0.18)); }
+  }
+
+  /* ========================================================================
+   * TOP-LEFT PROFILE & TOP-RIGHT SAVE-HINT (matches reference)
+   * ====================================================================== */
+  .profile, .save-hint {
+    position: absolute; z-index: 16;
+    color: rgba(23,29,33,.86);
+    background: linear-gradient(180deg, rgba(249,251,254,.68), rgba(241,246,251,.54));
+    border: 1px solid rgba(36,44,50,.14);
+    box-shadow: 0 18px 42px rgba(90,108,123,.12), inset 0 0 0 1px rgba(255,255,255,.48);
+    backdrop-filter: blur(8px) saturate(1.06);
+    opacity: 0;
+    transition: opacity 700ms ease 5.0s, transform 800ms ease 5.0s;
+    transform: translateY(-8px);
+  }
+  body.boot-done .profile, body.boot-done .save-hint { opacity: 1; transform: translateY(0); }
+  .profile { top: 36px; left: 56px; display: flex; align-items: center; gap: 14px; padding: 10px 16px; }
+  .avatar {
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    border: 2px solid rgba(31,37,41,.46); color: rgba(20,24,27,.78);
+    font-size: 22px; font-weight: 900; background: rgba(255,255,255,.22);
+    font-family: var(--font-kai);
+  }
+  .profile-name { font-size: 17px; letter-spacing: .32em; color: rgba(12,15,17,.88); font-family: var(--font-kai); font-weight: 900; }
+  .profile-tag  { margin-top: 3px; font-family: var(--font-mono); font-size: 9px; letter-spacing: .24em; color: rgba(59,69,78,.72); }
+
+  .save-hint { top: 36px; right: 56px; max-width: 280px; padding: 12px 16px; text-align: left; }
+  .save-tag { font-size: 13px; letter-spacing: .36em; color: rgba(17,21,24,.84); font-family: var(--font-kai); font-weight: 900; }
+  .save-where { margin-top: 6px; font-size: 13px; letter-spacing: .14em; line-height: 1.55; color: rgba(38,47,54,.74); }
+  .save-time  { margin-top: 6px; font-family: var(--font-mono); font-size: 9px; letter-spacing: .22em; color: rgba(73,85,96,.62); }
+
+  /* ========================================================================
+   * FOOTER PROMPT BAR
+   * ====================================================================== */
+  .footer-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 8;
+    height: 56px; padding: 0 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(180deg, transparent, rgba(20,24,28,0.36) 60%, rgba(20,24,28,0.46));
+    opacity: 0; transition: opacity 600ms ease 5.4s;
+  }
+  body.boot-done .footer-bar { opacity: 1; }
+  .build-tag { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em; color: rgba(248,251,255,.86); }
+  .right-prompts { display: inline-flex; align-items: center; gap: 24px; }
+  .prompt-mini { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-kai); font-size: 14px; letter-spacing: 0.22em; color: rgba(248,251,255,.92); text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .km {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    border: 1px solid rgba(248,251,255,.86); color: rgba(248,251,255,.92);
+  }
+
+  /* ========================================================================
+   * MAIN MENU OVERLAY
+   * ====================================================================== */
+  .menu-overlay { position: absolute; inset: 0; z-index: 20; pointer-events: none; opacity: 0; transition: opacity 0.5s ease; }
+  body.menu-open .menu-overlay { opacity: 1; pointer-events: auto; }
+  body.menu-open .press-prompt { opacity: 0; pointer-events: none; animation: none; }
+  body.menu-open .title-poster { transform: scale(0.84); transform-origin: 24% 50%; transition: transform 0.6s cubic-bezier(.22,.9,.26,1); }
+
+  .menu {
+    position: absolute; right: 6.5%; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    width: 360px; padding: 16px;
+    background: linear-gradient(180deg, rgba(250,252,255,.78), rgba(240,245,250,.60));
+    border: 1px solid rgba(34,42,47,.18);
+    box-shadow: 0 30px 80px rgba(87,104,119,.20), inset 0 0 0 1px rgba(255,255,255,.48);
+    backdrop-filter: blur(10px) saturate(1.04);
+  }
+  .menu-label { font-size: 11px; letter-spacing: .42em; color: rgba(44,53,60,.54); font-family: var(--font-kai); padding: 0 0 6px 4px; }
+  .mi {
+    position: relative; min-height: 58px; padding: 12px 18px 12px 54px;
+    border: 1px solid rgba(30,38,45,.10); background: rgba(255,255,255,.24);
+    color: rgba(18,23,27,.82); text-align: left;
+    font-family: var(--font-kai); font-size: 21px; font-weight: 900; letter-spacing: .26em;
+    cursor: pointer;
+    transition: all 180ms ease;
+    transform: translateX(40px); opacity: 0;
+  }
+  body.menu-open .mi { transform: translateX(0); opacity: 1; }
+  body.menu-open .mi:nth-child(2) { transition-delay: 0.05s; }
+  body.menu-open .mi:nth-child(3) { transition-delay: 0.10s; }
+  body.menu-open .mi:nth-child(4) { transition-delay: 0.15s; }
+  body.menu-open .mi:nth-child(5) { transition-delay: 0.20s; }
+  body.menu-open .mi:nth-child(6) { transition-delay: 0.25s; }
+  body.menu-open .mi:nth-child(7) { transition-delay: 0.30s; }
+  .mi::before { content: ""; position: absolute; left: 18px; top: 50%; width: 22px; height: 1.5px; background: rgba(22,27,31,.42); transform: translateY(-50%); transition: width 180ms ease, height 180ms ease; }
+  .mi small { display: block; margin-top: 5px; font-family: var(--font-mono); font-weight: 400; font-size: 10px; letter-spacing: .16em; color: rgba(54,66,75,.62); }
+  .mi:hover, .mi.active {
+    transform: translateX(-6px); color: rgba(0,0,0,.94);
+    border-color: rgba(28,34,38,.30); background: rgba(255,255,255,.82);
+    box-shadow: 0 18px 34px rgba(91,108,124,.18);
+  }
+  .mi.active::before { height: 3px; background: rgba(0,0,0,.86); }
+  .mi.active { letter-spacing: .30em; }
+
+  /* ========================================================================
+   * TWEAKS PANEL
+   * ====================================================================== */
+  .tweaks-panel {
+    position: absolute; right: 16px; top: 16px; z-index: 90;
+    width: 240px;
+    background: rgba(255,255,255,.94);
+    border: 1px solid rgba(5,6,7,.32);
+    box-shadow: 0 18px 52px rgba(96,115,132,.18);
+    padding: 14px 16px 16px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .10em;
+    display: none;
+  }
+  body.tweaks-open .tweaks-panel { display: block; }
+  .tweaks-panel h4 { margin: 0 0 10px; font-family: var(--font-kai); font-size: 13px; font-weight: 900; letter-spacing: 0.30em; color: var(--ink-black); display: flex; justify-content: space-between; }
+  .tweaks-panel h4 .x { cursor: pointer; color: var(--paper-mute); }
+  .tw-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .tw-row label { color: var(--paper-mute); text-transform: uppercase; }
+  .tw-row input[type="range"] { width: 110px; }
+  .tw-btn {
+    width: 100%; padding: 8px;
+    background: var(--ink-black); color: var(--paper);
+    border: none; cursor: pointer;
+    font-family: var(--font-kai); font-size: 12px; letter-spacing: 0.30em;
+    margin-top: 4px;
+  }
+  .tw-btn.alt { background: rgba(255,255,255,.86); color: var(--ink-black); border: 1px solid var(--ink-black); }
+</style>
+</head>
+<body>
+  <!-- ========= STAGE ========= -->
+  <main class="stage">
+    <div class="horizon"></div>
+    <div class="mist-band"></div>
+    <div class="grain"></div>
+
+    <!-- distant V-formation -->
+    <div class="flock" aria-hidden="true">
+      <svg viewBox="0 0 1280 80" preserveAspectRatio="none">
+        <g class="v-group" fill="none" stroke="rgba(8,12,14,0.62)" stroke-width="1.4" stroke-linecap="round">
+          <path class="v-wing"    d="M 200 38 q 6 -5 12 0 q 6 -5 12 0"/>
+          <path class="v-wing d1" d="M 178 46 q 5 -4 10 0 q 5 -4 10 0"/>
+          <path class="v-wing d1" d="M 222 46 q 5 -4 10 0 q 5 -4 10 0"/>
+          <path class="v-wing d2" d="M 156 54 q 4.5 -3.6 9 0 q 4.5 -3.6 9 0"/>
+          <path class="v-wing d2" d="M 244 54 q 4.5 -3.6 9 0 q 4.5 -3.6 9 0"/>
+          <path class="v-wing d3" d="M 134 62 q 4 -3.2 8 0 q 4 -3.2 8 0"/>
+          <path class="v-wing d3" d="M 266 62 q 4 -3.2 8 0 q 4 -3.2 8 0"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="motes" id="motes"></div>
+
+    <!-- profile + save hint -->
+    <section class="profile">
+      <div class="avatar">風</div>
+      <div>
+        <div class="profile-name">風行客</div>
+        <div class="profile-tag">在线 · 已游 12 时</div>
+      </div>
+    </section>
+    <section class="save-hint">
+      <div class="save-tag">续旅</div>
+      <div class="save-where">第三幕 · 山村回忆 · 灵儿戏水</div>
+      <div class="save-time">二〇二六/四/二四 · 廿二时四一分 · 自动存档</div>
+    </section>
+
+    <!-- title poster -->
+    <section class="title-poster" aria-label="标题">
+      <div class="ink-blade"></div>
+      <div class="ink-sweep"></div>
+      <div class="blade-streaks" aria-hidden="true">
+        <svg viewBox="0 0 50 400" preserveAspectRatio="none">
+          <defs>
+            <filter id="ink-rough" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence baseFrequency="0.62 0.18" numOctaves="3" seed="11" result="t"/>
+              <feDisplacementMap in="SourceGraphic" in2="t" scale="3"/>
+            </filter>
+          </defs>
+          <g filter="url(#ink-rough)" fill="none" stroke="#F1F5FA" stroke-linecap="round">
+            <path d="M 22 20 C 22 80 24 140 22 200 C 22 260 26 320 24 380" stroke-width="1.4" opacity="0.78"/>
+            <path d="M 30 60 C 30 130 28 200 30 270 C 30 320 32 360 32 380" stroke-width="1.0" opacity="0.6"/>
+            <path d="M 16 110 C 18 160 14 220 18 280" stroke-width="0.9" opacity="0.5"/>
+          </g>
+        </svg>
+      </div>
+      <div class="title-main">一介</div>
+      <div class="title-sub">寒土孤山</div>
+      <div class="title-tag">凡人的宁静 · 时代的碾碎</div>
+      <div class="corner-seal">一介印</div>
+      <div class="seal-stamp">介</div>
+    </section>
+
+    <!-- press prompt -->
+    <div class="press-prompt" id="prompt">
+      <span class="rule"></span>
+      <span class="key">✕</span>
+      <span class="lbl">按键开始</span>
+      <span class="rule"></span>
+    </div>
+
+    <!-- footer prompt bar -->
+    <footer class="footer-bar">
+      <div class="build-tag">YIJIE · HANWRAITH · 〇·壹·〇 · 二〇二六</div>
+      <div class="right-prompts">
+        <span class="prompt-mini"><span class="km">○</span>返回</span>
+        <span class="prompt-mini"><span class="km">△</span>阅览</span>
+        <span class="prompt-mini"><span class="km">□</span>致谢</span>
+      </div>
+    </footer>
+
+    <!-- main menu overlay -->
+    <div class="menu-overlay">
+      <nav class="menu" aria-label="主菜单">
+        <div class="menu-label">功能選項</div>
+        <button class="mi active" type="button">继续旅途<small>第三幕 · 山村回忆</small></button>
+        <button class="mi" type="button">新的开始<small>从寒土孤山重新起程</small></button>
+        <button class="mi" type="button">载入存档<small>查看可用回忆节点</small></button>
+        <button class="mi" type="button">设　定<small>画面 · 声音 · 操作</small></button>
+        <button class="mi" type="button">阅　览<small>人物 · 兵器 · 地志</small></button>
+        <button class="mi" type="button">退　出<small>离开寒山</small></button>
+      </nav>
+    </div>
+  </main>
+
+  <!-- ========= BOOT OVERLAY (above stage) ========= -->
+  <div class="boot-shade"></div>
+  <div class="ink-bloom"></div>
+  <div class="crest" aria-hidden="true">
+    <div class="crest-mark">介</div>
+    <div class="crest-name">寒山工作室</div>
+    <div class="crest-tag">A HANSHAN STUDIO PRODUCTION</div>
+  </div>
+
+  <!-- ========= TWEAKS PANEL ========= -->
+  <div class="tweaks-panel">
+    <h4>Tweaks <span class="x" id="tw-close">✕</span></h4>
+    <div class="tw-row">
+      <label>启动速度</label>
+      <input type="range" id="tw-speed" min="0.6" max="2" step="0.1" value="1">
+    </div>
+    <div class="tw-row">
+      <label>朱印色</label>
+      <input type="color" id="tw-zhusha" value="#8A2E28">
+    </div>
+    <button class="tw-btn" id="tw-replay">重 放 启 动</button>
+    <button class="tw-btn alt" id="tw-skip" style="margin-top: 6px;">跳 过 启 动</button>
+  </div>
+
+<script>
+  // === Spawn paper-grain motes ===
+  (function spawnMotes() {
+    const c = document.getElementById('motes');
+    if (!c) return;
+    for (let i = 0; i < 32; i++) {
+      const m = document.createElement('span');
+      m.className = 'mote';
+      m.style.left = (Math.random() * 100) + '%';
+      m.style.top  = (60 + Math.random() * 40) + '%';
+      m.style.animationDuration = (12 + Math.random() * 18) + 's';
+      m.style.animationDelay = (-Math.random() * 18) + 's';
+      m.style.opacity = (0.3 + Math.random() * 0.5);
+      const s = 1 + Math.random() * 1.6;
+      m.style.transform = `scale(${s})`;
+      c.appendChild(m);
+    }
+  })();
+
+  // === Boot timing ===
+  // 0.0–1.6s  studio crest (in/out)
+  // 1.6–3.2s  ink bloom (paper reveal)
+  // 3.2s      stage-on (paper visible)
+  // 3.2–6.0s  ink-blade drop, 一介 carved, seal stamp, prompt
+  const STAGE_ON_MS  = 2400;   // when stage fades in (during bloom)
+  const BOOT_END_MS  = 3200;   // when boot-shade fully gone
+  let stageTimer = setTimeout(() => document.body.classList.add('stage-on'), STAGE_ON_MS);
+  let bootTimer  = setTimeout(() => document.body.classList.add('boot-done'), BOOT_END_MS);
+
+  function skipBoot() {
+    clearTimeout(stageTimer); clearTimeout(bootTimer);
+    document.body.classList.add('stage-on', 'boot-done');
+    // also mark as if everything's revealed instantly — disable transitions briefly
+    document.body.style.setProperty('--instant', '1');
+  }
+
+  function replayBoot() {
+    document.body.classList.remove('stage-on', 'boot-done', 'menu-open');
+    document.querySelectorAll('.crest, .ink-bloom').forEach(el => {
+      el.style.animation = 'none'; void el.offsetHeight; el.style.animation = '';
+    });
+    clearTimeout(stageTimer); clearTimeout(bootTimer);
+    stageTimer = setTimeout(() => document.body.classList.add('stage-on'), STAGE_ON_MS);
+    bootTimer  = setTimeout(() => document.body.classList.add('boot-done'), BOOT_END_MS);
+  }
+
+  // === Menu open/close ===
+  function openMenu() {
+    if (!document.body.classList.contains('boot-done')) return;
+    document.body.classList.add('menu-open');
+  }
+  function closeMenu() { document.body.classList.remove('menu-open'); }
+
+  document.getElementById('prompt').addEventListener('click', openMenu);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (document.body.classList.contains('menu-open')) closeMenu();
+      return;
+    }
+    if (e.key === 'x' || e.key === 'X' || e.key === 'Enter' || e.key === ' ') {
+      if (!document.body.classList.contains('boot-done')) {
+        skipBoot();
+      } else if (!document.body.classList.contains('menu-open')) {
+        openMenu();
+      }
+    }
+  });
+  document.querySelectorAll('.mi').forEach((el) => {
+    el.addEventListener('mouseenter', () => {
+      document.querySelectorAll('.mi').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+    });
+  });
+
+  // === Tweaks bridge ===
+  window.addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.type === '__activate_edit_mode')   document.body.classList.add('tweaks-open');
+    if (d.type === '__deactivate_edit_mode') document.body.classList.remove('tweaks-open');
+  });
+  document.getElementById('tw-close').addEventListener('click', () => {
+    document.body.classList.remove('tweaks-open');
+    window.parent.postMessage({type: '__edit_mode_dismissed'}, '*');
+  });
+  document.getElementById('tw-replay').addEventListener('click', replayBoot);
+  document.getElementById('tw-skip').addEventListener('click', skipBoot);
+  document.getElementById('tw-zhusha').addEventListener('input', (e) => {
+    document.documentElement.style.setProperty('--zhusha', e.target.value);
+  });
+  document.getElementById('tw-speed').addEventListener('input', (e) => {
+    const speed = parseFloat(e.target.value);
+    document.body.classList.remove('stage-on', 'boot-done');
+    clearTimeout(stageTimer); clearTimeout(bootTimer);
+    stageTimer = setTimeout(() => document.body.classList.add('stage-on'), STAGE_ON_MS / speed);
+    bootTimer  = setTimeout(() => document.body.classList.add('boot-done'), BOOT_END_MS / speed);
+  });
+
+  setTimeout(() => window.parent.postMessage({type: '__edit_mode_available'}, '*'), 300);
+</script>
+</body>
+</html>

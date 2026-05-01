@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="ink">
+<head>
+<meta charset="utf-8">
+<title>一介 · 行囊 · Inventory</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<link rel="stylesheet" href="nav-tabs.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; user-select: none; cursor: default; }
+  body {
+    width: 1280px; height: 720px; position: relative;
+    color: var(--ink-black); font-family: var(--font-kai);
+    --safe-x: 56px;
+  }
+
+  /* ============ stage bg (matches title/settings) ============ */
+  .stage {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 42vw 30vh at 49% 24%, rgba(255,255,255,.78), transparent 72%),
+      radial-gradient(ellipse 50vw 38vh at 52% 58%, rgba(214,226,238,.42), transparent 78%),
+      radial-gradient(ellipse 22vw 18vh at 9% 94%, rgba(115,132,145,.30), transparent 72%),
+      radial-gradient(ellipse 24vw 20vh at 86% 92%, rgba(190,202,214,.24), transparent 74%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='p'><feTurbulence baseFrequency='0.018 0.055' numOctaves='4' seed='59'/><feColorMatrix values='0 0 0 0 0.60 0 0 0 0 0.66 0 0 0 0 0.72 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)'/></svg>"),
+      linear-gradient(180deg, #F1F5FA 0%, #E7EEF6 46%, #DDE6EF 100%);
+  }
+  .horizon {
+    position: absolute; inset: auto 0 0 0; height: 22vh; pointer-events: none; z-index: 0;
+    background:
+      linear-gradient(0deg, rgba(36,43,48,.20), transparent 65%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 420' preserveAspectRatio='none'><path d='M0 330 C160 270 260 355 410 300 C520 260 640 350 790 300 C940 245 1030 345 1200 292 C1370 240 1480 335 1600 278 L1600 420 L0 420 Z' fill='%233A4146' opacity='.20'/><path d='M0 405 C250 360 460 393 700 350 C980 302 1210 388 1600 330 L1600 420 L0 420 Z' fill='%23080A0B' opacity='.13'/></svg>");
+  }
+  .grain {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0.10;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' seed='23'/><feColorMatrix values='0 0 0 0 0.72 0 0 0 0 0.78 0 0 0 0 0.84 0 0 0 0.22 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* ============ body grid ============ */
+  .body {
+    position: absolute;
+    top: 64px; left: 0; right: 0; bottom: 60px;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 30% 26% 1fr;
+    gap: 0;
+  }
+
+  /* ============ 左栏：装备类目卡 ============ */
+  .cats {
+    padding: 26px 18px 26px 28px;
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 14px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15,20,24,.18) transparent;
+  }
+  .cat {
+    position: relative;
+    height: 110px;
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    align-items: stretch;
+    cursor: pointer;
+    border: 1px solid rgba(15,20,24,.16);
+    background: rgba(248,251,255,.66);
+    box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 4px 14px rgba(20,28,36,.05);
+    transition: transform .18s cubic-bezier(.3,.9,.4,1), border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    overflow: hidden;
+  }
+  .cat::before {
+    content: ""; position: absolute; top: 6px; left: 6px; right: 6px; bottom: 6px;
+    border: 1px dashed rgba(15,20,24,.10); pointer-events: none;
+  }
+  .cat:hover {
+    transform: translateX(3px);
+    border-color: rgba(15,20,24,.55);
+    box-shadow: 0 6px 16px rgba(20,28,36,.10);
+  }
+  .cat.active {
+    height: 168px;
+    background:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.97 0 0 0 0 0.99 0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+      linear-gradient(180deg, #1A1E22 0%, #0F1416 70%, #080A0B 100%);
+    border-color: var(--ink-black);
+    color: rgba(248,251,255,.96);
+    box-shadow: 0 8px 22px rgba(20,28,36,.32), inset 0 0 0 1px rgba(248,251,255,.08);
+    grid-template-columns: 1fr;
+  }
+  .cat.active .cat-name {
+    color: rgba(248,251,255,.96);
+    font-size: 26px; padding: 22px 24px 0;
+    letter-spacing: 0.28em;
+    text-shadow: 0 0 12px rgba(0,0,0,.55);
+    z-index: 3;
+  }
+  .cat.active .cat-name .sub { color: rgba(214,226,238,.55); font-size: 10px; margin-top: 6px; }
+  .cat.active .cat-icon {
+    position: absolute;
+    right: -8%; top: 50%;
+    transform: translateY(-50%) rotate(-12deg);
+    width: 88%; height: 78%;
+    opacity: 0.14;
+    pointer-events: none;
+  }
+  .cat.active .cat-icon svg { width: 100%; height: 100%; stroke: rgba(248,251,255,.96); fill: rgba(248,251,255,.96); }
+  .cat.active::after {
+    content: "佩";
+    position: absolute;
+    top: 12px; right: 16px;
+    width: 28px; height: 28px;
+    font-family: var(--font-kai);
+    font-size: 16px; font-weight: 900;
+    color: rgba(248,251,255,.96);
+    background: rgba(248,251,255,.08);
+    border: 1px solid rgba(248,251,255,.42);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 4;
+    transform: rotate(-3deg);
+  }
+  .cat-name {
+    font-family: var(--font-kai);
+    font-size: 20px; font-weight: 900;
+    letter-spacing: 0.20em; padding: 14px 0 0 16px;
+    color: var(--ink-black);
+    align-self: start;
+    position: relative; z-index: 2;
+  }
+  .cat-name .sub {
+    display: block;
+    font-size: 10px; font-weight: 400;
+    letter-spacing: 0.32em; padding-left: 0.32em;
+    color: rgba(35,43,50,.55);
+    font-family: var(--font-mono);
+    margin-top: 4px;
+  }
+  .cat-icon {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    padding: 12px;
+  }
+  .cat-icon svg {
+    width: 100%; height: 100%;
+    max-width: 86px; max-height: 72px;
+    stroke: var(--ink-black);
+    fill: var(--ink-black);
+    opacity: 0.84;
+  }
+
+  /* ============ 中栏：变体 + 饰品挂位 ============ */
+  .charms {
+    padding: 28px 22px;
+    display: flex; flex-direction: column;
+    border-left: 1px solid rgba(15,20,24,.14);
+    border-right: 1px solid rgba(15,20,24,.14);
+    background:
+      linear-gradient(180deg, rgba(248,251,255,.42) 0%, rgba(232,240,247,.16) 100%);
+  }
+  .charms-head {
+    font-family: var(--font-kai);
+    font-size: 13px; letter-spacing: 0.36em;
+    color: rgba(35,43,50,.6);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(15,20,24,.10);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .charms-head .en { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.42em; color: rgba(35,43,50,.42); }
+
+  .variants { display: flex; gap: 10px; margin-bottom: 18px; }
+  .variant {
+    width: 70px; height: 70px;
+    background: rgba(248,251,255,.7);
+    border: 1px solid rgba(15,20,24,.20);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all .16s ease;
+    position: relative;
+  }
+  .variant svg { width: 42px; height: 42px; stroke: var(--ink-black); fill: var(--ink-black); opacity: .82; }
+  .variant:hover { transform: translateY(-2px); border-color: rgba(15,20,24,.6); }
+  .variant.active {
+    background: var(--ink-black);
+    border-color: var(--ink-black);
+  }
+  .variant.active svg { stroke: rgba(248,251,255,.96); fill: rgba(248,251,255,.96); opacity: 1; }
+  .variant.locked-corner::after {
+    content: "印";
+    position: absolute; top: -6px; right: -6px;
+    width: 18px; height: 18px;
+    font-family: var(--font-kai); font-size: 10px;
+    background: var(--ink-black); color: rgba(248,251,255,.96);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .charm-list { display: flex; flex-direction: column; gap: 10px; }
+  .charm {
+    display: grid; grid-template-columns: 48px 1fr;
+    gap: 12px; align-items: center;
+    padding: 10px 12px;
+    background: rgba(248,251,255,.62);
+    border: 1px solid rgba(15,20,24,.14);
+    cursor: pointer;
+    transition: all .16s ease;
+  }
+  .charm:hover { border-color: rgba(15,20,24,.5); transform: translateX(2px); }
+  .charm.active {
+    background: var(--ink-black);
+    border-color: var(--ink-black);
+  }
+  .charm.active .charm-name { color: rgba(248,251,255,.96); }
+  .charm.active .charm-icon svg { stroke: rgba(248,251,255,.96); fill: rgba(248,251,255,.96); }
+  .charm-icon {
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(248,251,255,.72);
+    border: 1px solid rgba(15,20,24,.20);
+  }
+  .charm.active .charm-icon { background: rgba(248,251,255,.10); border-color: rgba(248,251,255,.32); }
+  .charm-icon svg { width: 30px; height: 30px; stroke: var(--ink-black); fill: var(--ink-black); opacity: .84; }
+  .charm-name {
+    font-family: var(--font-kai);
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.20em;
+    color: var(--ink-black);
+  }
+
+  .lock-list { display: flex; gap: 8px; margin-top: 14px; }
+  .lock {
+    width: 48px; height: 48px;
+    background: rgba(248,251,255,.4);
+    border: 1px dashed rgba(15,20,24,.30);
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(35,43,50,.4);
+  }
+  .lock svg { width: 22px; height: 22px; stroke: rgba(35,43,50,.40); fill: none; }
+
+  .expand-prompt {
+    margin-top: auto;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: rgba(248,251,255,.5);
+    border: 1px solid rgba(15,20,24,.14);
+    cursor: pointer;
+    font-family: var(--font-kai); font-size: 12px; letter-spacing: 0.24em;
+    color: rgba(20,24,26,.86);
+    transition: all .16s ease;
+  }
+  .expand-prompt:hover { background: rgba(248,251,255,.85); border-color: rgba(15,20,24,.4); }
+  .expand-prompt .pad {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 28px; height: 22px; padding: 0 8px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    background: var(--ink-black); color: rgba(248,251,255,.96);
+    border-radius: 11px;
+  }
+
+  /* ============ 右栏：武将立绘 + 朱叶 ============ */
+  .preview {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 50% 40% at 50% 60%, rgba(214,226,238,.42), transparent 70%),
+      linear-gradient(180deg, rgba(232,240,247,.42) 0%, rgba(218,228,238,.32) 100%);
+  }
+  .preview::before {
+    content: "";
+    position: absolute; inset: 22px;
+    border: 1px dashed rgba(15,20,24,.10);
+    pointer-events: none;
+  }
+  .hero-name {
+    position: absolute; top: 28px; right: 32px;
+    font-family: var(--font-kai);
+    font-size: 18px; font-weight: 900;
+    letter-spacing: 0.42em;
+    color: var(--ink-black);
+    z-index: 4;
+    writing-mode: vertical-rl;
+  }
+  .hero-name::before {
+    content: "";
+    display: block;
+    width: 2px; height: 24px;
+    background: var(--ink-black);
+    margin: 0 auto 8px;
+  }
+  .hero-mount {
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 2;
+    padding-bottom: 8px;
+  }
+  .hero-mount svg.hero {
+    width: 78%; max-height: 100%;
+    filter: drop-shadow(0 18px 22px rgba(20,28,36,.12));
+  }
+  .leaf-layer {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    z-index: 3; overflow: hidden;
+  }
+  .leaf {
+    position: absolute;
+    width: 18px; height: 18px;
+    opacity: 0;
+    animation: leafFall var(--dur, 8s) linear var(--delay, 0s) infinite;
+    transform-origin: 50% 50%;
+  }
+  .leaf svg { width: 100%; height: 100%; fill: rgba(20,28,36,.42); }
+  @keyframes leafFall {
+    0%   { transform: translate(0, -10vh) rotate(0deg) scale(var(--leaf-scale, 1)); opacity: 0; }
+    8%   { opacity: 0.8; }
+    50%  { transform: translate(calc(var(--drift, 30) * 1px), 50vh) rotate(180deg) scale(var(--leaf-scale, 1)); }
+    92%  { opacity: 0.8; }
+    100% { transform: translate(calc(var(--drift, 30) * 2px), 110vh) rotate(360deg) scale(var(--leaf-scale, 1)); opacity: 0; }
+  }
+
+  /* ============ footer ============ */
+  .footer-bar {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
+    height: 60px; padding: 0 var(--safe-x);
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(0deg, rgba(232,240,247,.8) 0%, rgba(248,251,255,0) 100%);
+    border-top: 1px solid rgba(15,20,24,.10);
+  }
+  .footer-meta {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.32em;
+    color: rgba(35,43,50,.55);
+  }
+  .footer-meta .label-cn {
+    font-family: var(--font-kai); font-size: 14px; font-weight: 900;
+    letter-spacing: 0.32em; color: var(--ink-black);
+    margin-right: 10px;
+  }
+  .prompts { display: flex; align-items: center; gap: 18px; }
+  .prompt {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-kai); font-size: 12px; letter-spacing: 0.22em;
+    color: rgba(20,24,26,.86);
+  }
+  .km {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; padding: 0 8px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+    color: var(--ink-black);
+    background: rgba(248,251,255,.95);
+    border: 1.2px solid rgba(15,20,24,.55);
+    border-radius: 11px;
+  }
+  .km.cross { color: rgba(248,251,255,.96); background: var(--ink-black); border-color: var(--ink-black); }
+
+  /* toast */
+  .toast {
+    position: absolute; left: 50%; top: 84px;
+    transform: translateX(-50%) translateY(-12px);
+    padding: 10px 18px;
+    background: var(--ink-black); color: rgba(248,251,255,.96);
+    font-family: var(--font-kai); font-size: 13px; letter-spacing: 0.28em;
+    z-index: 9; opacity: 0; pointer-events: none;
+    transition: opacity .22s ease, transform .22s ease;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<main class="stage">
+  <div class="horizon"></div>
+  <div class="grain"></div>
+
+  <!-- 全局导航 -->
+  <nav class="nav-tabs" data-current="inventory" aria-label="界面切换">
+    <span class="tk-key l">L1</span>
+    <div class="tabs-row">
+      <a class="tab-link" data-screen="map">地图</a>
+      <a class="tab-link" data-screen="journal">日志</a>
+      <a class="tab-link" data-screen="inventory">行囊</a>
+      <a class="tab-link" data-screen="skills">武学</a>
+      <a class="tab-link" data-screen="codex">收藏</a>
+      <a class="tab-link" data-screen="settings">設定</a>
+    </div>
+    <span class="tk-key r">R1</span>
+    <div class="nav-right">
+      <span class="chap-num" id="chap">壹</span>
+      <span class="meta-coin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="12" cy="12" r="9"></circle>
+          <rect x="9.5" y="9.5" width="5" height="5"></rect>
+        </svg>
+        <span id="coin">596</span>
+      </span>
+    </div>
+  </nav>
+
+  <!-- 主体三栏 -->
+  <div class="body">
+    <!-- 左：装备类目 -->
+    <aside class="cats"></aside>
+
+    <!-- 中：饰品挂位 -->
+    <section class="charms">
+      <div class="charms-head"><span>护身符 · 三道</span><span class="en">CHARMS · 3 / 6</span></div>
+      <div class="variants"></div>
+      <div class="charm-list"></div>
+      <div class="lock-list"></div>
+      <div class="expand-prompt" id="expand">
+        <span class="pad">R2</span>
+        <span>展 开 详 情</span>
+      </div>
+    </section>
+
+    <!-- 右：武将立绘 -->
+    <section class="preview">
+      <div class="hero-name">寒 山 · 一 介</div>
+      <div class="leaf-layer"></div>
+      <div class="hero-mount"></div>
+    </section>
+  </div>
+
+  <!-- 底栏 -->
+  <footer class="footer-bar">
+    <div class="footer-meta"><span class="label-cn">行 囊</span>三类八物 · 自动同步</div>
+    <div class="prompts">
+      <span class="prompt"><span class="km">L1·R1</span>切换界面</span>
+      <span class="prompt"><span class="km">↑↓</span>选符</span>
+      <span class="prompt"><span class="km">←→</span>切类</span>
+      <span class="prompt"><span class="km">R2</span>详情</span>
+      <span class="prompt"><span class="km cross">✕</span>装配</span>
+    </div>
+  </footer>
+
+  <div class="toast" aria-live="polite"></div>
+</main>
+
+<script>
+/* === 水墨线描图标库（与原版同 key） ============================================== */
+const SR_ICONS = {
+  // 长剑（青釭剑感）
+  sword: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M82 14L70 18L22 66L18 78L26 82L34 80L82 32L86 20L82 14Z"/><path d="M30 70L36 76"/><path d="M22 78L14 86M14 78L22 86"/></svg>`,
+  // 戎装
+  armor: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M50 10L24 22L26 56C26 70 36 82 50 88C64 82 74 70 74 56L76 22L50 10Z"/><path d="M50 22L36 28L38 54C38 64 44 72 50 76C56 72 62 64 62 54L64 28L50 22Z"/><path d="M50 22L50 76"/></svg>`,
+  // 长弓 + 箭袋
+  bowQuiver: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 50C14 28 28 14 50 14C72 14 86 28 86 50"/><path d="M14 50L86 50"/><path d="M50 14L50 50"/><path d="M40 64L60 64L62 86L38 86Z"/><path d="M44 64L44 78M50 64L50 80M56 64L56 78"/></svg>`,
+  // 玉珏
+  jade: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="50" cy="50" r="34"/><circle cx="50" cy="50" r="16"/><path d="M84 50L66 50"/></svg>`,
+  // 玄武八卦
+  bagua: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="50" cy="50" r="34"/><path d="M50 16C40 16 32 24 32 36C32 48 40 56 50 56C60 56 68 48 68 60C68 72 60 80 50 80"/><circle cx="50" cy="36" r="3" fill="currentColor"/><circle cx="50" cy="64" r="3" fill="none"/></svg>`,
+  // 破甲
+  break: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M22 30L78 70M30 22L70 78"/><path d="M50 14L50 86"/></svg>`,
+  // 决心
+  resolve: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M50 14L20 28L20 56C20 72 32 84 50 90C68 84 80 72 80 56L80 28L50 14Z"/><path d="M50 36L50 64M40 50L60 50"/></svg>`,
+  // 锁
+  lock: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="26" y="46" width="48" height="36"/><path d="M36 46V36C36 26 42 18 50 18C58 18 64 26 64 36V46"/></svg>`,
+  // 落叶
+  leaf: `<svg viewBox="0 0 24 24"><path d="M12 2C6 6 4 12 6 20C14 18 20 12 22 4C18 4 14 4 12 2Z"/></svg>`,
+  // 短刀（用于 variant）
+  blade: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M82 14L70 18L22 66L18 78L26 82L34 80L82 32L86 20L82 14Z"/><path d="M22 78L14 86"/></svg>`
+};
+
+/* === 武将立绘（线描墨笔风，单色 currentColor） ============================== */
+const SR_HERO_SVG = `
+<svg class="hero" viewBox="0 0 360 700" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="rgba(20,28,36,.84)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="ink-robe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="rgba(58,65,72,.55)"/>
+      <stop offset="100%" stop-color="rgba(20,28,36,.30)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 头巾 + 高冠 -->
+  <path d="M180 36 Q 178 18 192 8 Q 204 14 198 28 Z" fill="rgba(20,28,36,.42)" stroke-width="1"/>
+  <path d="M148 90 Q 148 50 180 46 Q 212 50 212 90 L 210 110 L 150 110 Z" fill="url(#ink-robe)"/>
+  <path d="M150 110 L 210 110 L 206 122 L 154 122 Z" fill="rgba(20,28,36,.32)"/>
+  <path d="M170 84 L 174 96 L 186 96 L 190 84"/>
+
+  <!-- 面 -->
+  <path d="M158 122 Q 158 154 180 168 Q 202 154 202 122 Z" fill="rgba(248,251,255,.78)"/>
+  <path d="M168 138 L 174 138 M 186 138 L 192 138"/>
+  <path d="M178 148 L 178 154 L 174 156"/>
+  <path d="M170 162 Q 180 168 190 162"/>
+  <path d="M158 122 L 154 116 M 202 122 L 206 116"/>
+
+  <!-- 颈 -->
+  <path d="M168 168 L 168 188 L 192 188 L 192 168" fill="rgba(248,251,255,.62)"/>
+
+  <!-- 肩甲（札片暗示） -->
+  <path d="M120 180 Q 110 200 120 230 L 156 210 Q 156 188 148 174 Z" fill="rgba(20,28,36,.32)"/>
+  <path d="M240 180 Q 250 200 240 230 L 204 210 Q 204 188 212 174 Z" fill="rgba(20,28,36,.32)"/>
+  <path d="M126 198 L 152 198 M 126 212 L 152 212"/>
+  <path d="M234 198 L 208 198 M 234 212 L 208 212"/>
+
+  <!-- 胸甲 -->
+  <path d="M148 168 L 212 168 L 224 196 L 220 240 Q 180 252 140 240 L 136 196 Z" fill="rgba(20,28,36,.42)"/>
+  <path d="M165 200 Q 180 218 195 200 L 190 212 Q 180 222 170 212 Z" fill="rgba(248,251,255,.32)"/>
+  <path d="M148 178 L 212 178 M 144 196 L 216 196 M 142 216 L 218 216 M 142 234 L 218 234"/>
+
+  <!-- 腰带 -->
+  <path d="M140 240 Q 180 252 220 240 L 222 260 Q 180 270 138 260 Z" fill="rgba(58,65,72,.62)"/>
+
+  <!-- 长袍下摆 -->
+  <path d="M138 260 Q 130 360 124 480 Q 122 540 134 600 L 226 600 Q 238 540 236 480 Q 230 360 222 260 Z" fill="url(#ink-robe)"/>
+  <path d="M180 260 L 180 600"/>
+  <path d="M150 280 L 150 580 M 210 280 L 210 580"/>
+  <path d="M134 380 L 226 380 M 130 480 L 230 480"/>
+
+  <!-- 长剑负后 -->
+  <path d="M250 200 L 320 320" stroke="rgba(20,28,36,.86)" stroke-width="2.4"/>
+  <path d="M250 200 L 240 188 L 232 196 L 244 208 Z" fill="rgba(20,28,36,.62)"/>
+  <path d="M320 320 L 332 332"/>
+  <path d="M312 308 L 326 322" stroke-width="3"/>
+
+  <!-- 战靴 -->
+  <path d="M150 600 L 174 600 L 176 632 L 144 632 Z" fill="rgba(20,28,36,.48)"/>
+  <path d="M186 600 L 210 600 L 216 632 L 184 632 Z" fill="rgba(20,28,36,.48)"/>
+  <path d="M140 632 L 180 632 L 180 646 L 138 646 Z" fill="rgba(20,28,36,.62)"/>
+  <path d="M180 632 L 220 632 L 222 646 L 180 646 Z" fill="rgba(20,28,36,.62)"/>
+
+  <!-- 地面墨痕 -->
+  <ellipse cx="180" cy="660" rx="80" ry="6" fill="rgba(20,28,36,.18)" stroke="none"/>
+</svg>`;
+
+/* === 应用状态 ================================================================ */
+const STATE = {
+  activeCatId: "weapon",
+  activeCharmId: "xuanwu",
+  activeVariantIdx: 0,
+  cats: [
+    { id: "weapon", name: "佩剑",     sub: "QING GANG SWORD",  icon: "sword",     label: "青釭剑" },
+    { id: "armor",  name: "戎装",     sub: "WAR ARMOR",        icon: "armor",     label: "汉将札甲" },
+    { id: "ammo",   name: "兵器囊袋", sub: "BOW & QUIVER",      icon: "bowQuiver", label: "硬弓与雕翎" },
+    { id: "ornm",   name: "佩饰",     sub: "ADORNMENT",        icon: "jade",      label: "汉玉珏" }
+  ],
+  variants: [
+    { idx: 0, label: "环首汉刀", icon: "blade" },
+    { idx: 1, label: "花纹长剑", icon: "blade", stamped: true }
+  ],
+  charms: [
+    { id: "xuanwu", name: "玄武镇魂符", icon: "bagua" },
+    { id: "pojia",  name: "破甲战符",   icon: "break" },
+    { id: "juexin", name: "决心护身符 壹", icon: "resolve" }
+  ],
+  locked: 3
+};
+
+function showToast(msg) {
+  const t = document.querySelector(".toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+function renderCats() {
+  const wrap = document.querySelector(".cats");
+  wrap.innerHTML = "";
+  STATE.cats.forEach(cat => {
+    const node = document.createElement("div");
+    node.className = "cat" + (cat.id === STATE.activeCatId ? " active" : "");
+    node.innerHTML = `
+      <div class="cat-name">${cat.name}<span class="sub">${cat.sub}</span></div>
+      <div class="cat-icon">${SR_ICONS[cat.icon]}</div>`;
+    node.addEventListener("click", () => setCat(cat.id));
+    wrap.appendChild(node);
+  });
+}
+function renderVariants() {
+  const wrap = document.querySelector(".variants");
+  wrap.innerHTML = "";
+  STATE.variants.forEach(v => {
+    const node = document.createElement("div");
+    let cls = "variant";
+    if (v.idx === STATE.activeVariantIdx) cls += " active";
+    if (v.stamped) cls += " locked-corner";
+    node.className = cls;
+    node.innerHTML = SR_ICONS[v.icon];
+    node.title = v.label;
+    node.addEventListener("click", () => setVariant(v.idx));
+    wrap.appendChild(node);
+  });
+}
+function renderCharms() {
+  const wrap = document.querySelector(".charm-list");
+  wrap.innerHTML = "";
+  STATE.charms.forEach(charm => {
+    const node = document.createElement("div");
+    node.className = "charm" + (charm.id === STATE.activeCharmId ? " active" : "");
+    node.innerHTML = `
+      <div class="charm-icon">${SR_ICONS[charm.icon]}</div>
+      <div class="charm-name">${charm.name}</div>`;
+    node.addEventListener("click", () => setCharm(charm.id));
+    wrap.appendChild(node);
+  });
+  const lockWrap = document.querySelector(".lock-list");
+  lockWrap.innerHTML = "";
+  for (let i = 0; i < STATE.locked; i++) {
+    const lock = document.createElement("div");
+    lock.className = "lock";
+    lock.innerHTML = SR_ICONS.lock;
+    lockWrap.appendChild(lock);
+  }
+}
+function renderHero() {
+  document.querySelector(".hero-mount").innerHTML = SR_HERO_SVG;
+}
+function renderLeaves() {
+  const layer = document.querySelector(".leaf-layer");
+  layer.innerHTML = "";
+  for (let i = 0; i < 14; i++) {
+    const leaf = document.createElement("div");
+    leaf.className = "leaf";
+    const x = Math.random() * 100;
+    const dur = 8 + Math.random() * 6;
+    const delay = Math.random() * 8;
+    const drift = -40 + Math.random() * 80;
+    const scale = 0.7 + Math.random() * 0.6;
+    leaf.style.left = `${x}%`;
+    leaf.style.setProperty("--dur", `${dur}s`);
+    leaf.style.setProperty("--delay", `-${delay}s`);
+    leaf.style.setProperty("--drift", drift);
+    leaf.style.setProperty("--leaf-scale", scale.toFixed(2));
+    leaf.innerHTML = SR_ICONS.leaf;
+    layer.appendChild(leaf);
+  }
+}
+
+function setCat(id) {
+  if (!STATE.cats.find(c => c.id === id)) return;
+  STATE.activeCatId = id;
+  renderCats();
+}
+function setCharm(id) { STATE.activeCharmId = id; renderCharms(); }
+function setVariant(idx) { STATE.activeVariantIdx = idx; renderVariants(); }
+function cycleCat(d) {
+  const i = STATE.cats.findIndex(c => c.id === STATE.activeCatId);
+  setCat(STATE.cats[(i + d + STATE.cats.length) % STATE.cats.length].id);
+}
+function cycleCharm(d) {
+  const i = STATE.charms.findIndex(c => c.id === STATE.activeCharmId);
+  setCharm(STATE.charms[(i + d + STATE.charms.length) % STATE.charms.length].id);
+}
+
+/* keyboard */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "q" || e.key === "Q" || e.key === "e" || e.key === "E") return; // nav-tabs.js
+  if (e.key === "ArrowUp"   || e.key === "w" || e.key === "W") { e.preventDefault(); cycleCharm(-1); }
+  else if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); cycleCharm(1); }
+  else if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { e.preventDefault(); cycleCat(-1); }
+  else if (e.key === "ArrowRight"|| e.key === "d" || e.key === "D") { e.preventDefault(); cycleCat(1); }
+  else if (e.key === "Tab") { e.preventDefault(); cycleCat(e.shiftKey ? -1 : 1); }
+  else if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    const charm = STATE.charms.find(c => c.id === STATE.activeCharmId);
+    if (charm) showToast(`装配：${charm.name}`);
+  }
+  else if (e.key === "r" || e.key === "R") { e.preventDefault(); showToast("展开详情 · 占位"); }
+});
+document.getElementById("expand").addEventListener("click", () => showToast("展开详情 · 占位"));
+
+renderCats();
+renderVariants();
+renderCharms();
+renderHero();
+renderLeaves();
+</script>
+<script src="nav-tabs.js"></script>
+</body>
+</html>
